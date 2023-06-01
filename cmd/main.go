@@ -18,7 +18,7 @@ import (
 )
 
 func main() {
-	env("../.env")
+	env(".env")
 	ctx := context.Background()
 
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill, syscall.SIGTERM)
