@@ -63,5 +63,22 @@ func (gb *gitbucket) NewRepo(name string) (*Repo, error) {
 		log.Print(resp.Dump())
 	}
 
+	type permissionRequest struct {
+		perm string `json:"permission"`
+	}
+
+	payloadPermission := permissionRequest{
+		perm: "admin",
+	}
+
+	resp, err = gb.client.R().
+		SetBody(&payloadPermission).
+		Post("/repos/naudachu/" + name + "/collaborators/apps")
+
+	if !resp.IsSuccessState() || err != nil {
+		log.Print("bad status:", resp.Status)
+		log.Print(resp.Dump())
+	}
+
 	return &git, err
 }

@@ -72,8 +72,7 @@ func workflow(name string) string {
 		git := createRepo(issue.Key, 0)
 		gitBuild := createRepo(issue.Key+"-build", 1)
 		folder := createFolder(issue.Key + " - " + issue.Summary)
-		updated := yt.UpdateIssue(issue, folder, git, gitBuild)
-		log.Print(updated)
+		yt.UpdateIssue(issue, folder, git, gitBuild)
 	}
 	return issue.Key
 }

@@ -40,8 +40,10 @@ func (c *cloud) CreateFolder(name string) (*Cloud, error) {
 		FolderPath: "",
 	}
 
+	pathName := HOMEPATH + name
+
 	resp, err := c.client.R().
-		Send("MKCOL", HOMEPATH+name)
+		Send("MKCOL", pathName)
 
 	// Check if request failed or response status is not Ok;
 	if !resp.IsSuccessState() || err != nil {
