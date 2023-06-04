@@ -1,14 +1,13 @@
 package domain
 
 import (
-	"log"
 	"time"
 
 	"github.com/imroc/req/v3"
 )
 
 type gitbucket struct {
-	client *req.Client
+	*req.Client
 }
 
 func NewGitBucket(base, token string) *gitbucket {
@@ -19,12 +18,12 @@ func NewGitBucket(base, token string) *gitbucket {
 		"Content-Type":         "application/json",
 	}
 
-	client := req.C().
+	client := NewClient().
 		SetTimeout(5 * time.Second).
 		SetCommonHeaders(headers).
 		SetBaseURL(base)
 	return &gitbucket{
-		client: client,
+		client,
 	}
 }
 
@@ -52,32 +51,29 @@ func (gb *gitbucket) NewRepo(name string) (*Repo, error) {
 
 	var git Repo
 
-	resp, err := gb.client.R().
+	_, err := gb.R().
 		SetBody(&payload).
 		SetSuccessResult(&git).
 		Post("/user/repos")
 
-	// Check if request failed or response status is not Ok;
-	if !resp.IsSuccessState() || err != nil {
-		log.Print("bad status:", resp.Status)
-		log.Print(resp.Dump())
+	if err != nil {
+		return nil, err
 	}
 
 	type permissionRequest struct {
-		perm string `json:"permission"`
+		Perm string `json:"permission"`
 	}
 
 	payloadPermission := permissionRequest{
-		perm: "admin",
+		Perm: "admin",
 	}
 
-	resp, err = gb.client.R().
+	_, err = gb.R().
 		SetBody(&payloadPermission).
-		Post("/repos/naudachu/" + name + "/collaborators/apps")
+		Put("/repos/naudachu/" + name + "/collaborators/apps")
 
-	if !resp.IsSuccessState() || err != nil {
-		log.Print("bad status:", resp.Status)
-		log.Print(resp.Dump())
+	if err != nil {
+		return nil, err
 	}
 
 	return &git, err

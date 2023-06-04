@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 
 	"ticket-creator/domain"
@@ -18,7 +19,7 @@ import (
 )
 
 func main() {
-	env(".env")
+	env(".env.dev")
 	ctx := context.Background()
 
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill, syscall.SIGTERM)
@@ -37,6 +38,24 @@ func env(envFilePath string) {
 	}
 }
 
+func answer(name string) string {
+	return tg.HTML.Text(
+		tg.HTML.Line(
+			"🤘 Ticket ",
+			tg.HTML.Link(name, fmt.Sprintf("https://marlerino.youtrack.cloud/issue/%s", name)),
+			"has been created!",
+		),
+	)
+}
+
+func errorAnswer(errorMsg string) string {
+	return tg.HTML.Text(
+		tg.HTML.Line(
+			tg.HTML.Italic(errorMsg),
+		),
+	)
+}
+
 func run(ctx context.Context) error {
 	client := tg.New(os.Getenv("TG_API"))
 
@@ -47,16 +66,16 @@ func run(ctx context.Context) error {
 			if str == "" {
 				return errors.New("empty command provided")
 			}
-			issueKeyStr := workflow(str)
+			issueKeyStr, err := workflow(str)
+			if err != nil {
+				return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
+			}
 
-			return mu.Answer(tg.HTML.Text(
-				tg.HTML.Line(
-					"🤘 Ticket ",
-					tg.HTML.Link(issueKeyStr, fmt.Sprintf("https://marlerino.youtrack.cloud/issue/%s", issueKeyStr)),
-					"has been created!",
-				),
-			)).ParseMode(tg.HTML).DoVoid(ctx)
-		}, tgb.TextHasPrefix("/new"))
+			return mu.Answer(answer(issueKeyStr)).ParseMode(tg.HTML).DoVoid(ctx)
+		}, tgb.TextHasPrefix("/new")).
+		Message(func(ctx context.Context, mu *tgb.MessageUpdate) error {
+			return mu.Answer("pong").DoVoid(ctx)
+		}, tgb.Command("ping"))
 
 	return tgb.NewPoller(
 		router,
@@ -64,17 +83,44 @@ func run(ctx context.Context) error {
 	).Run(ctx)
 }
 
-func workflow(name string) string {
+func workflow(name string) (string, error) {
 	yt := domain.NewYT(os.Getenv("YT_URL"), os.Getenv("YT_TOKEN"))
-	projects := yt.GetProjects()
-	issue := yt.CreateIssue(projects[0].ID, name)
+
+	projects, err := yt.GetProjects()
+	if err != nil {
+		return "", err
+	}
+
+	issue, err := yt.CreateIssue(projects[1].ID, name)
+	if err != nil {
+		return "", err
+	}
 	if issue != nil {
-		git := createRepo(issue.Key, 0)
-		gitBuild := createRepo(issue.Key+"-build", 1)
-		folder := createFolder(issue.Key + " - " + issue.Summary)
+		var (
+			wg                    sync.WaitGroup
+			git, gitBuild, folder string
+		)
+
+		wg.Add(3)
+
+		go func() {
+			defer wg.Done()
+			git = createRepo(issue.Key, 0)
+		}()
+
+		go func() {
+			defer wg.Done()
+			gitBuild = createRepo(issue.Key+"-build", 1)
+		}()
+		go func() {
+			defer wg.Done()
+			folder = createFolder(issue.Key + " - " + issue.Summary)
+		}()
+
+		wg.Wait()
 		yt.UpdateIssue(issue, folder, git, gitBuild)
 	}
-	return issue.Key
+	return issue.Key, nil
 }
 
 func createRepo(name string, param uint) string {

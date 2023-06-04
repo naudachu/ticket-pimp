@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -8,7 +9,7 @@ import (
 )
 
 type youtrack struct {
-	client *req.Client
+	*req.Client
 }
 
 func NewYT(base, token string) *youtrack {
@@ -17,14 +18,14 @@ func NewYT(base, token string) *youtrack {
 		"Content-Type": "application/json",
 	}
 
-	client := req.C().
+	client := NewClient().
 		SetTimeout(15 * time.Second).
 		SetCommonHeaders(headers).
 		SetBaseURL(base).
 		SetCommonBearerAuthToken(token)
 
 	return &youtrack{
-		client: client,
+		client,
 	}
 }
 
@@ -36,21 +37,22 @@ type Project struct {
 
 // GetProjects
 // provides an array of existing projects;
-func (yt *youtrack) GetProjects() []Project {
+func (yt *youtrack) GetProjects() ([]Project, error) {
 
 	var projects []Project
 
-	resp, err := yt.client.R().
+	_, err := yt.R().
 		EnableDump().
 		SetQueryParam("fields", "id,name,shortName").
 		SetSuccessResult(&projects).
 		Get("/admin/projects")
 
-	if !resp.IsSuccessState() || err != nil {
-		log.Print("bad status:", resp.Status)
-		log.Print(resp.Dump())
+	// Check if the request failed;
+	if err != nil {
+		return nil, fmt.Errorf("some problem with YT request. error message: %v", err)
 	}
-	return projects
+
+	return projects, nil
 }
 
 type ProjectID struct {
@@ -67,7 +69,7 @@ type IssueCreateRequest struct {
 
 // CreateIssue
 // example: newIssue := yt.CreateIssue("0-2", "Summary", "Description");
-func (yt *youtrack) CreateIssue(projectID, name string) *IssueCreateRequest {
+func (yt *youtrack) CreateIssue(projectID, name string) (*IssueCreateRequest, error) {
 
 	// Create an issue with the provided:, Project ID, Name, Description;
 	issue := IssueCreateRequest{
@@ -79,19 +81,18 @@ func (yt *youtrack) CreateIssue(projectID, name string) *IssueCreateRequest {
 	}
 
 	// Push issue to the YT;
-	resp, err := yt.client.R().
+	_, err := yt.R().
 		SetQueryParam("fields", "idReadable,id").
 		SetBody(&issue).
 		SetSuccessResult(&issue).
 		Post("/issues")
 
-	// Check if request failed or response status is not Ok;
-	if !resp.IsSuccessState() || err != nil {
-		log.Print("bad status:", resp.Status)
-		log.Print(resp.Dump())
+	// Check if the request failed;
+	if err != nil {
+		return nil, fmt.Errorf("some problem with YT request. error message: %v", err)
 	}
 
-	return &issue
+	return &issue, nil
 }
 
 type IssueUpdateRequest struct {
@@ -109,7 +110,7 @@ type CustomField struct {
 	Value string `json:"value"`
 }
 
-func (yt *youtrack) UpdateIssue(issue *IssueCreateRequest, folder, git, gitBuild string) *IssueUpdateRequest {
+func (yt *youtrack) UpdateIssue(issue *IssueCreateRequest, folder, git, gitBuild string) (*IssueUpdateRequest, error) {
 	// Set Folder, Git, GitBuild to the Issue:
 	update := IssueUpdateRequest{
 		IssueCreateRequest: *issue,
@@ -133,15 +134,21 @@ func (yt *youtrack) UpdateIssue(issue *IssueCreateRequest, folder, git, gitBuild
 	}
 
 	// Push issue update to  YT
-	resp, err := yt.client.R().
+	resp, err := yt.R().
 		SetBody(&update).
 		SetSuccessResult(&issue).
 		Post("/issues/" + issue.Key)
 
-	if !resp.IsSuccessState() || err != nil {
-		log.Print("bad status:", resp.Status)
-		log.Print(resp.Dump())
+		// Check if the request failed;
+	if err != nil {
+		return nil, fmt.Errorf("some problem with YT request. error message: %v", err)
 	}
 
-	return &update
+	if !resp.IsSuccessState() {
+		log.Print("bad status:", resp.Status)
+		log.Print(resp.Dump())
+		return nil, fmt.Errorf("YouTrack responded with %d", resp.StatusCode)
+	}
+
+	return &update, nil
 }

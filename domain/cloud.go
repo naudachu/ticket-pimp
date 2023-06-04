@@ -1,26 +1,24 @@
 package domain
 
 import (
-	"log"
 	"time"
 
 	"github.com/imroc/req/v3"
 )
 
 type cloud struct {
-	baseUrl string
-	client  *req.Client
+	*req.Client
 }
 
 func NewCloud(base, user, pass string) *cloud {
 
-	client := req.C().
+	client := NewClient().
 		SetTimeout(5*time.Second).
 		SetCommonBasicAuth(user, pass).
 		SetBaseURL(base)
+
 	return &cloud{
-		baseUrl: base,
-		client:  client,
+		client,
 	}
 }
 
@@ -42,17 +40,12 @@ func (c *cloud) CreateFolder(name string) (*Cloud, error) {
 
 	pathName := HOMEPATH + name
 
-	resp, err := c.client.R().
+	resp, err := c.R().
 		Send("MKCOL", pathName)
 
-	// Check if request failed or response status is not Ok;
-	if !resp.IsSuccessState() || err != nil {
-		log.Print("bad status:", resp.Status)
-		log.Print(resp.Dump())
+	if resp.IsSuccessState() {
+		cloud.FolderPath = c.BaseURL + PATH + name
 	}
 
-	if resp.StatusCode == 201 {
-		cloud.FolderPath = c.baseUrl + PATH + name
-	}
 	return &cloud, err
 }
