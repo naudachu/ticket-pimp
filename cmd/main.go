@@ -18,6 +18,7 @@ import (
 )
 
 func main() {
+	log.Print("started")
 	env(".env")
 	ctx := context.Background()
 
