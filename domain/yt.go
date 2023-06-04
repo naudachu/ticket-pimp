@@ -8,6 +8,12 @@ import (
 	"github.com/imroc/req/v3"
 )
 
+type IYouTrack interface {
+	GetProjects() ([]Project, error)
+	CreateIssue(projectID, name string) (*IssueCreateRequest, error)
+	UpdateIssue(issue *IssueCreateRequest, folder, git, gitBuild string) (*IssueUpdateRequest, error)
+}
+
 type youtrack struct {
 	*req.Client
 }
