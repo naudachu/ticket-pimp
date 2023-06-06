@@ -1,14 +1,15 @@
-FROM golang:1.20-alpine
-
+FROM golang:alpine as app-builder
 WORKDIR $GOPATH/src/ticket-creator/
-
 COPY . .
+RUN apk add git
+# Static build required so that we can safely copy the binary over.
+# `-tags timetzdata` embeds zone info from the "time/tzdata" package.
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install -ldflags '-extldflags "-static"' -tags timetzdata cmd/main.go
 
-RUN go mod download
-RUN go mod verify
-
-RUN cd ./cmd
-
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o /usr/local/bin/app cmd/main.go
-
-CMD ["app"]
+FROM scratch
+# the test program:
+COPY --from=app-builder /go/bin/main /ticket-creator
+# the tls certificates:
+# NB: this pulls directly from the upstream image, which already has ca-certificates:
+COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+ENTRYPOINT ["/ticket-creator"]
