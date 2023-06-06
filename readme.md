@@ -1,5 +1,5 @@
 
-`docker build -t golang-scratch -f ./Dockerfile .`
+`docker build -t golang-scratch-test --pull .`
 
 # To-do P1:
 - [ ] Делать запросы в Git, ownCloud параллельно;
@@ -16,4 +16,5 @@
 - [ ] Подумать над нормальной обработкой ошибок, сейчас достаточно всрато;
 - [ ] Складывать в описание репозитория ссылку на тикет;
 - [ ] Сделать базулю с достойными пользователями;
-- [ ] Run bot on docker scratch: https://github.com/jeremyhuiskamp/golang-docker-scratch/blob/main/README.md
+
+- [x] Run bot on docker scratch: https://github.com/jeremyhuiskamp/golang-docker-scratch/blob/main/README.md
