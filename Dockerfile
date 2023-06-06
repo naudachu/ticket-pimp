@@ -9,7 +9,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go install -ldflags '-extldflags "-sta
 FROM scratch
 # the test program:
 COPY --from=app-builder /go/bin/main /ticket-creator
+COPY --from=app-builder /go/src/ticket-creator/cmd/.env /
 # the tls certificates:
 # NB: this pulls directly from the upstream image, which already has ca-certificates:
 COPY --from=alpine:latest /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
 ENTRYPOINT ["/ticket-creator"]
