@@ -1,7 +1,9 @@
-package domain
+package ext
 
 import (
 	"log"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/imroc/req/v3"
@@ -38,7 +40,26 @@ type Repo struct {
 	SshUrl   string `json:"ssh_url"`
 }
 
+func gitHubLikeNaming(input string) string {
+	// Remove leading and trailing whitespace
+	input = strings.TrimSpace(input)
+
+	// Replace non-Latin letters with spaces
+	reg := regexp.MustCompile("[^a-zA-Z]+")
+	input = reg.ReplaceAllString(input, " ")
+
+	// Split into words and capitalize first letter of each
+	words := strings.Fields(input)
+	for i, word := range words {
+		words[i] = strings.ToLower(word)
+	}
+
+	// Join words and return
+	return strings.Join(words, "-")
+}
+
 func (gb *gitbucket) NewRepo(name string) (*Repo, error) {
+	name = gitHubLikeNaming(name)
 
 	type request struct {
 		Name    string `json:"name"`
@@ -70,11 +91,12 @@ func (gb *gitbucket) NewRepo(name string) (*Repo, error) {
 		Perm: "admin",
 	}
 
-	_, err = gb.R().
+	resp, err = gb.R().
 		SetBody(&payloadPermission).
 		Put("/repos/naudachu/" + name + "/collaborators/apps")
 
 	if err != nil {
+		log.Print(resp)
 		return nil, err
 	}
 

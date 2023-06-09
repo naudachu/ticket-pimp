@@ -11,7 +11,7 @@ import (
 	"sync"
 	"syscall"
 
-	"ticket-creator/domain"
+	"ticket-creator/ext"
 
 	"github.com/joho/godotenv"
 	"github.com/mr-linch/go-tg"
@@ -87,11 +87,16 @@ func newTicketAnswer(name string) string {
 
 func newRepoHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
 
-	str := strings.Replace(mu.Text, "/newrepo", "", 1)
+	str := strings.Replace(mu.Text, "/repo", "", 1)
+	str = strings.TrimSpace(str)
+	str = strings.Replace(str, " ", "-", -1)
+
 	if str == "" {
 		return errors.New("empty command provided")
 	}
+
 	repoStr, err := createRepo(str, 0)
+
 	if err != nil {
 		return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
 	}
@@ -113,7 +118,7 @@ func pingHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
 }
 
 func workflow(name string) (string, error) {
-	yt := domain.NewYT(os.Getenv("YT_URL"), os.Getenv("YT_TOKEN"))
+	yt := ext.NewYT(os.Getenv("YT_URL"), os.Getenv("YT_TOKEN"))
 
 	projects, err := yt.GetProjects()
 	if err != nil {
@@ -154,7 +159,7 @@ func workflow(name string) (string, error) {
 }
 
 func createRepo(name string, param uint) (string, error) {
-	gb := domain.NewGitBucket(os.Getenv("GIT_BASE_URL"), os.Getenv("GIT_TOKEN"))
+	gb := ext.NewGitBucket(os.Getenv("GIT_BASE_URL"), os.Getenv("GIT_TOKEN"))
 	repo, err := gb.NewRepo(name)
 	if err != nil {
 		return "", err
@@ -176,7 +181,7 @@ func createRepo(name string, param uint) (string, error) {
 }
 
 func createFolder(name string) string {
-	oc := domain.NewCloud(os.Getenv("CLOUD_BASE_URL"), os.Getenv("CLOUD_USER"), os.Getenv("CLOUD_PASS"))
+	oc := ext.NewCloud(os.Getenv("CLOUD_BASE_URL"), os.Getenv("CLOUD_USER"), os.Getenv("CLOUD_PASS"))
 	cloud, _ := oc.CreateFolder(name)
 	if cloud != nil {
 		return cloud.FolderPath
