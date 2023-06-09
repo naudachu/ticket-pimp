@@ -39,16 +39,6 @@ func env(envFilePath string) {
 	}
 }
 
-func answer(name string) string {
-	return tg.HTML.Text(
-		tg.HTML.Line(
-			"🤘 Ticket ",
-			tg.HTML.Link(name, fmt.Sprintf("https://marlerino.youtrack.cloud/issue/%s", name)),
-			"has been created!",
-		),
-	)
-}
-
 func errorAnswer(errorMsg string) string {
 	return tg.HTML.Text(
 		tg.HTML.Line(
@@ -61,27 +51,65 @@ func run(ctx context.Context) error {
 	client := tg.New(os.Getenv("TG_API"))
 
 	router := tgb.NewRouter().
-		Message(func(ctx context.Context, mu *tgb.MessageUpdate) error {
-
-			str := strings.Replace(mu.Text, "/new", "", 1)
-			if str == "" {
-				return errors.New("empty command provided")
-			}
-			issueKeyStr, err := workflow(str)
-			if err != nil {
-				return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
-			}
-
-			return mu.Answer(answer(issueKeyStr)).ParseMode(tg.HTML).DoVoid(ctx)
-		}, tgb.TextHasPrefix("/new")).
-		Message(func(ctx context.Context, mu *tgb.MessageUpdate) error {
-			return mu.Answer("pong").DoVoid(ctx)
-		}, tgb.Command("ping"))
+		Message(newTicketHandler, tgb.TextHasPrefix("/new")).
+		Message(pingHandler, tgb.Command("ping")).
+		Message(newRepoHandler, tgb.TextHasPrefix("/repo"))
 
 	return tgb.NewPoller(
 		router,
 		client,
 	).Run(ctx)
+}
+
+func newTicketHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
+
+	str := strings.Replace(mu.Text, "/new", "", 1)
+	if str == "" {
+		return errors.New("empty command provided")
+	}
+	issueKeyStr, err := workflow(str)
+	if err != nil {
+		return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
+	}
+
+	return mu.Answer(newTicketAnswer(issueKeyStr)).ParseMode(tg.HTML).DoVoid(ctx)
+}
+
+func newTicketAnswer(name string) string {
+	return tg.HTML.Text(
+		tg.HTML.Line(
+			"🤘 Ticket ",
+			tg.HTML.Link(name, fmt.Sprintf("https://marlerino.youtrack.cloud/issue/%s", name)),
+			"has been created!",
+		),
+	)
+}
+
+func newRepoHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
+
+	str := strings.Replace(mu.Text, "/newrepo", "", 1)
+	if str == "" {
+		return errors.New("empty command provided")
+	}
+	repoStr, err := createRepo(str, 0)
+	if err != nil {
+		return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
+	}
+
+	return mu.Answer(newRepoAnswer(repoStr)).ParseMode(tg.HTML).DoVoid(ctx)
+}
+func newRepoAnswer(name string) string {
+	return tg.HTML.Text(
+		tg.HTML.Line(
+			"Repo ",
+			name,
+			"has been created!",
+		),
+	)
+}
+
+func pingHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
+	return mu.Answer("pong").DoVoid(ctx)
 }
 
 func workflow(name string) (string, error) {
@@ -106,12 +134,12 @@ func workflow(name string) (string, error) {
 
 		go func() {
 			defer wg.Done()
-			git = createRepo(issue.Key, 0)
+			git, _ = createRepo(issue.Key, 0)
 		}()
 
 		go func() {
 			defer wg.Done()
-			gitBuild = createRepo(issue.Key+"-build", 1)
+			gitBuild, _ = createRepo(issue.Key+"-build", 1)
 		}()
 		go func() {
 			defer wg.Done()
@@ -119,25 +147,32 @@ func workflow(name string) (string, error) {
 		}()
 
 		wg.Wait()
+
 		yt.UpdateIssue(issue, folder, git, gitBuild)
 	}
 	return issue.Key, nil
 }
 
-func createRepo(name string, param uint) string {
+func createRepo(name string, param uint) (string, error) {
 	gb := domain.NewGitBucket(os.Getenv("GIT_BASE_URL"), os.Getenv("GIT_TOKEN"))
-	repo, _ := gb.NewRepo(name)
+	repo, err := gb.NewRepo(name)
+	if err != nil {
+		return "", err
+	}
+
+	// Result string formatting:
 	if repo != nil {
 		switch param {
 		case 0:
-			return repo.HtmlUrl
+			return repo.HtmlUrl, nil
 		case 1:
-			return fmt.Sprintf("ssh://%s/%s.git", repo.SshUrl, repo.FullName)
+			return fmt.Sprintf("ssh://%s/%s.git", repo.SshUrl, repo.FullName), nil
 		default:
-			return repo.CloneUrl
+			return repo.CloneUrl, nil
 		}
 	}
-	return "no-repo"
+
+	return "", err
 }
 
 func createFolder(name string) string {

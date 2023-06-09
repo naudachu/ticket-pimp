@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"log"
 	"time"
 
 	"github.com/imroc/req/v3"
@@ -51,12 +52,13 @@ func (gb *gitbucket) NewRepo(name string) (*Repo, error) {
 
 	var git Repo
 
-	_, err := gb.R().
+	resp, err := gb.R().
 		SetBody(&payload).
 		SetSuccessResult(&git).
 		Post("/user/repos")
 
 	if err != nil {
+		log.Print(resp)
 		return nil, err
 	}
 
