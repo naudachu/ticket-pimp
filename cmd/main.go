@@ -103,6 +103,7 @@ func newRepoHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
 
 	return mu.Answer(newRepoAnswer(repoStr)).ParseMode(tg.HTML).DoVoid(ctx)
 }
+
 func newRepoAnswer(name string) string {
 	return tg.HTML.Text(
 		tg.HTML.Line(
