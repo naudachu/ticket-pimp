@@ -2,18 +2,18 @@ package ext
 
 import (
 	"log"
-	"regexp"
-	"strings"
+	"os"
+	"ticket-creator/domain"
+	"ticket-creator/helpers"
 	"time"
-
-	"github.com/imroc/req/v3"
 )
 
-type gitbucket struct {
-	*req.Client
+type Git struct {
+	*Client
+	*domain.Git
 }
 
-func NewGitBucket(base, token string) *gitbucket {
+func NewGit(base, token string) *Git {
 	headers := map[string]string{
 		"Accept":               "application/vnd.github+json",
 		"Authorization":        "Token " + token,
@@ -25,80 +25,65 @@ func NewGitBucket(base, token string) *gitbucket {
 		SetTimeout(5 * time.Second).
 		SetCommonHeaders(headers).
 		SetBaseURL(base)
-	return &gitbucket{
-		client,
+
+	return &Git{
+		Client: &Client{client},
+		Git: &domain.Git{
+			Name:     "",
+			FullName: "",
+			Private:  true,
+			Url:      "",
+			CloneUrl: "",
+			HtmlUrl:  "",
+			SshUrl:   "",
+		},
 	}
 }
 
-type Repo struct {
-	Name     string `json:"name"`
-	FullName string `json:"full_name"`
-	Private  bool   `json:"private"`
-	Url      string `json:"url"`
-	CloneUrl string `json:"clone_url"`
-	HtmlUrl  string `json:"Html_url"`
-	SshUrl   string `json:"ssh_url"`
+type request struct {
+	Name    string `json:"name"`
+	Private bool   `json:"private"`
 }
 
-func gitHubLikeNaming(input string) string {
-	// Remove leading and trailing whitespace
-	input = strings.TrimSpace(input)
-
-	// Replace non-Latin letters with spaces
-	reg := regexp.MustCompile("[^a-zA-Z]+")
-	input = reg.ReplaceAllString(input, " ")
-
-	// Split into words and capitalize first letter of each
-	words := strings.Fields(input)
-	for i, word := range words {
-		words[i] = strings.ToLower(word)
-	}
-
-	// Join words and return
-	return strings.Join(words, "-")
+type permissionRequest struct {
+	Perm string `json:"permission"`
 }
 
-func (gb *gitbucket) NewRepo(name string) (*Repo, error) {
-	name = gitHubLikeNaming(name)
-
-	type request struct {
-		Name    string `json:"name"`
-		Private bool   `json:"private"`
-	}
+func (gb *Git) NewRepo(name string) (*domain.Git, error) {
+	name = helpers.GitNaming(name)
 
 	payload := request{
 		Name:    name,
-		Private: false,
+		Private: true,
 	}
 
-	var git Repo
+	var git domain.Git
 
 	resp, err := gb.R().
 		SetBody(&payload).
 		SetSuccessResult(&git).
 		Post("/user/repos")
+		//Post("/orgs/apps/repos")
 
 	if err != nil {
 		log.Print(resp)
-		return nil, err
 	}
 
-	type permissionRequest struct {
-		Perm string `json:"permission"`
-	}
+	return &git, err
+}
 
+func (gb *Client) AppsAsCollaboratorTo(git *domain.Git) (*domain.Git, error) {
 	payloadPermission := permissionRequest{
 		Perm: "admin",
 	}
 
-	resp, err = gb.R().
+	resp, err := gb.R().
 		SetBody(&payloadPermission).
-		Put("/repos/naudachu/" + name + "/collaborators/apps")
+		Put("/repos/" + os.Getenv("GIT_USER") + "/" + git.Name + "/collaborators/apps")
 
 	if err != nil {
 		log.Print(resp)
-		return nil, err
 	}
 
-	return &git, err
+	return git, err
 }

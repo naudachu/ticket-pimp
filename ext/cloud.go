@@ -1,23 +1,18 @@
 package ext
 
 import (
+	"os"
 	"time"
-
-	"github.com/imroc/req/v3"
 )
 
-type cloud struct {
-	*req.Client
-}
-
-func NewCloud(base, user, pass string) *cloud {
+func NewCloud(base, user, pass string) *Client {
 
 	client := NewClient().
 		SetTimeout(5*time.Second).
 		SetCommonBasicAuth(user, pass).
 		SetBaseURL(base)
 
-	return &cloud{
+	return &Client{
 		client,
 	}
 }
@@ -27,24 +22,20 @@ type Cloud struct {
 	FolderPath string
 }
 
-func (c *cloud) CreateFolder(name string) (*Cloud, error) {
-	const (
-		HOMEPATH = "/remote.php/dav/files/naudachu/%23mobiledev/"
-		PATH     = "/apps/files/?dir=/%23mobiledev/"
-	)
+func (c *Client) CreateFolder(name string) (*Cloud, error) {
 
 	cloud := Cloud{
 		FolderName: name,
 		FolderPath: "",
 	}
 
-	pathName := HOMEPATH + name
+	pathName := os.Getenv("HOMEPATH") + name
 
 	resp, err := c.R().
 		Send("MKCOL", pathName)
 
 	if resp.IsSuccessState() {
-		cloud.FolderPath = c.BaseURL + PATH + name
+		cloud.FolderPath = c.BaseURL + os.Getenv("FOLDER_PATH") + name
 	}
 
 	return &cloud, err
