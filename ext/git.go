@@ -3,8 +3,8 @@ package ext
 import (
 	"log"
 	"os"
-	"ticket-creator/domain"
-	"ticket-creator/helpers"
+	"ticket-pimp/domain"
+	"ticket-pimp/helpers"
 	"time"
 )
 

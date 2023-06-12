@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"ticket-creator/handler"
+	"ticket-pimp/handler"
 
 	"github.com/joho/godotenv"
 	"github.com/mr-linch/go-tg"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"ticket-creator/ext"
+	"ticket-pimp/ext"
 )
 
 func Workflow(name string) (string, error) {

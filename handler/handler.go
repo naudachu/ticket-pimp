@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"ticket-creator/controller"
+	"ticket-pimp/controller"
 
 	"github.com/mr-linch/go-tg"
 	"github.com/mr-linch/go-tg/tgb"
