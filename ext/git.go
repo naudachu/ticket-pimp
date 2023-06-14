@@ -13,6 +13,11 @@ type Git struct {
 	*domain.Git
 }
 
+type IGit interface {
+	NewRepo(string) (*domain.Git, error)
+	AppsAsCollaboratorTo(*domain.Git) (*domain.Git, error)
+}
+
 func NewGit(base, token string) *Git {
 	headers := map[string]string{
 		"Accept":               "application/vnd.github+json",
@@ -63,7 +68,6 @@ func (gb *Git) NewRepo(name string) (*domain.Git, error) {
 		SetBody(&payload).
 		SetSuccessResult(&git).
 		Post("/user/repos")
-		//Post("/orgs/apps/repos")
 
 	if err != nil {
 		log.Print(resp)
@@ -72,7 +76,7 @@ func (gb *Git) NewRepo(name string) (*domain.Git, error) {
 	return &git, err
 }
 
-func (gb *Client) AppsAsCollaboratorTo(git *domain.Git) (*domain.Git, error) {
+func (gb *Git) AppsAsCollaboratorTo(git *domain.Git) (*domain.Git, error) {
 	payloadPermission := permissionRequest{
 		Perm: "admin",
 	}

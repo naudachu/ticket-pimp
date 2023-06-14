@@ -12,6 +12,12 @@ type youtrack struct {
 	*req.Client
 }
 
+type IYouTrack interface {
+	GetProjects() ([]Project, error)
+	CreateIssue(projectID, name string) (*IssueCreateRequest, error)
+	UpdateIssue(issue *IssueCreateRequest, folder, git, gitBuild string) (*IssueUpdateRequest, error)
+}
+
 func NewYT(base, token string) *youtrack {
 	headers := map[string]string{
 		"Accept":       "application/json",

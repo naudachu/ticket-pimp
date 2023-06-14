@@ -16,7 +16,7 @@ import (
 
 func main() {
 	log.Print("started")
-	env(".env")
+	env(".dev.env")
 	ctx := context.Background()
 
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill, syscall.SIGTERM)
@@ -36,12 +36,24 @@ func env(envFilePath string) {
 }
 
 func run(ctx context.Context) error {
+
 	client := tg.New(os.Getenv("TG_API"))
 
+	h := handler.NewHandler(
+		os.Getenv("GIT_BASE_URL"),
+		os.Getenv("GIT_TOKEN"),
+		os.Getenv("CLOUD_BASE_URL"),
+		os.Getenv("CLOUD_USER"),
+		os.Getenv("CLOUD_PASS"),
+		os.Getenv("YT_URL"),
+		os.Getenv("YT_TOKEN"),
+	)
+
 	router := tgb.NewRouter().
-		Message(handler.NewTicketHandler, tgb.TextHasPrefix("/new")).
-		Message(handler.PingHandler, tgb.Command("ping")).
-		Message(handler.NewRepoHandler, tgb.TextHasPrefix("/repo"))
+		Message(h.NewTicketHandler, tgb.TextHasPrefix("/new")).
+		Message(h.PingHandler, tgb.Command("ping")).
+		Message(h.NewRepoHandler, tgb.TextHasPrefix("/repo")).
+		Message(h.NewFolderHandler, tgb.TextHasPrefix("/folder"))
 
 	return tgb.NewPoller(
 		router,
