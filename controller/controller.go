@@ -16,7 +16,7 @@ type WorkflowController struct {
 type IWorkflowController interface {
 	Workflow(name string) (string, error)
 	CreateRepo(name string, param uint) (string, error)
-	CreateFolder(name string) (*d.Cloud, error)
+	CreateFolder(name string) (*d.Folder, error)
 }
 
 func NewWorkflowController(
@@ -53,7 +53,7 @@ func (wc *WorkflowController) Workflow(name string) (string, error) {
 	if issue != nil {
 		var (
 			git, gitBuild string
-			cloud         *d.Cloud
+			cloud         *d.Folder
 		)
 
 		var wg sync.WaitGroup
@@ -69,7 +69,7 @@ func (wc *WorkflowController) Workflow(name string) (string, error) {
 			gitBuild, _ = wc.CreateRepo(issue.Key+"-build", 1)
 		}()
 
-		go func(ref **d.Cloud) {
+		go func(ref **d.Folder) {
 			defer wg.Done()
 			*ref, _ = wc.CreateFolder(issue.Key + " - " + issue.Summary)
 		}(&cloud)
@@ -103,12 +103,12 @@ func (wc *WorkflowController) CreateRepo(name string, param uint) (string, error
 	return "", err
 }
 
-func (wc *WorkflowController) CreateFolder(name string) (*d.Cloud, error) {
+func (wc *WorkflowController) CreateFolder(name string) (*d.Folder, error) {
 
 	//Create ownCloud folder w/ iCloud interface;
 	cloud, err := wc.iCloud.CreateFolder(name)
 	if cloud == nil {
-		return cloud, err
+		return nil, err
 	}
 
 	/* [ ] Experimental call:
