@@ -76,7 +76,7 @@ func (h *Handler) NewFolderHandler(ctx context.Context, mu *tgb.MessageUpdate) e
 	answer := tg.HTML.Text(
 		tg.HTML.Line(
 			"✨ Shiny folder",
-			tg.HTML.Link(cloud.FolderName, cloud.FolderURL),
+			tg.HTML.Link(cloud.Title, cloud.PrivateURL),
 			"has been created!",
 		),
 	)
