@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"sync"
+	d "ticket-pimp/domain"
 	"ticket-pimp/ext"
 )
 
@@ -15,7 +16,7 @@ type WorkflowController struct {
 type IWorkflowController interface {
 	Workflow(name string) (string, error)
 	CreateRepo(name string, param uint) (string, error)
-	CreateFolder(name string) (string, string, error)
+	CreateFolder(name string) (*d.Cloud, error)
 }
 
 func NewWorkflowController(
@@ -51,7 +52,8 @@ func (wc *WorkflowController) Workflow(name string) (string, error) {
 
 	if issue != nil {
 		var (
-			git, gitBuild, folder string
+			git, gitBuild string
+			cloud         *d.Cloud
 		)
 
 		var wg sync.WaitGroup
@@ -67,14 +69,14 @@ func (wc *WorkflowController) Workflow(name string) (string, error) {
 			gitBuild, _ = wc.CreateRepo(issue.Key+"-build", 1)
 		}()
 
-		go func() {
+		go func(ref **d.Cloud) {
 			defer wg.Done()
-			_, folder, _ = wc.CreateFolder(issue.Key + " - " + issue.Summary)
-		}()
+			*ref, _ = wc.CreateFolder(issue.Key + " - " + issue.Summary)
+		}(&cloud)
 
 		wg.Wait()
 
-		yt.UpdateIssue(issue, folder, git, gitBuild)
+		yt.UpdateIssue(issue, cloud.FolderURL, git, gitBuild)
 	}
 	return issue.Key, nil
 }
@@ -101,13 +103,17 @@ func (wc *WorkflowController) CreateRepo(name string, param uint) (string, error
 	return "", err
 }
 
-func (wc *WorkflowController) CreateFolder(name string) (string, string, error) {
+func (wc *WorkflowController) CreateFolder(name string) (*d.Cloud, error) {
 
 	//Create ownCloud folder w/ iCloud interface;
 	cloud, err := wc.iCloud.CreateFolder(name)
 	if cloud == nil {
-		return "", "", err
+		return cloud, err
 	}
 
-	return cloud.FolderName, cloud.FolderPath, err
+	/* [ ] Experimental call:
+	wc.iCloud.ShareToExternals(cloud)
+	*/
+
+	return cloud, err
 }

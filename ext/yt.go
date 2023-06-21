@@ -5,6 +5,8 @@ import (
 	"log"
 	"time"
 
+	d "ticket-pimp/domain"
+
 	"github.com/imroc/req/v3"
 )
 
@@ -13,9 +15,9 @@ type youtrack struct {
 }
 
 type IYouTrack interface {
-	GetProjects() ([]Project, error)
-	CreateIssue(projectID, name string) (*IssueCreateRequest, error)
-	UpdateIssue(issue *IssueCreateRequest, folder, git, gitBuild string) (*IssueUpdateRequest, error)
+	GetProjects() ([]d.Project, error)
+	CreateIssue(projectID, name string) (*d.IssueCreateRequest, error)
+	UpdateIssue(issue *d.IssueCreateRequest, folder, git, gitBuild string) (*d.IssueUpdateRequest, error)
 }
 
 func NewYT(base, token string) *youtrack {
@@ -35,17 +37,11 @@ func NewYT(base, token string) *youtrack {
 	}
 }
 
-type Project struct {
-	ID        string `json:"id"`
-	ShortName string `json:"shortName"`
-	Name      string `json:"name"`
-}
-
 // GetProjects
 // provides an array of existing projects;
-func (yt *youtrack) GetProjects() ([]Project, error) {
+func (yt *youtrack) GetProjects() ([]d.Project, error) {
 
-	var projects []Project
+	var projects []d.Project
 
 	_, err := yt.R().
 		EnableDump().
@@ -61,25 +57,13 @@ func (yt *youtrack) GetProjects() ([]Project, error) {
 	return projects, nil
 }
 
-type ProjectID struct {
-	ID string `json:"id"`
-}
-
-type IssueCreateRequest struct {
-	ProjectID   ProjectID `json:"project"`
-	Key         string    `json:"idReadable"`
-	ID          string    `json:"id"`
-	Summary     string    `json:"summary"`
-	Description string    `json:"description"`
-}
-
 // CreateIssue
 // example: newIssue := yt.CreateIssue("0-2", "Summary", "Description");
-func (yt *youtrack) CreateIssue(projectID, name string) (*IssueCreateRequest, error) {
+func (yt *youtrack) CreateIssue(projectID, name string) (*d.IssueCreateRequest, error) {
 
 	// Create an issue with the provided:, Project ID, Name, Description;
-	issue := IssueCreateRequest{
-		ProjectID: ProjectID{
+	issue := d.IssueCreateRequest{
+		ProjectID: d.ProjectID{
 			ID: projectID, //"id":"0-2"
 		},
 		Summary: name,
@@ -101,26 +85,11 @@ func (yt *youtrack) CreateIssue(projectID, name string) (*IssueCreateRequest, er
 	return &issue, nil
 }
 
-type IssueUpdateRequest struct {
-	IssueCreateRequest
-	CustomFields []CustomField `json:"customFields"`
-}
-
-type CustomFields struct {
-	List []CustomField `json:"customFields"`
-}
-
-type CustomField struct {
-	Name  string `json:"name"`
-	Type  string `json:"$type"`
-	Value string `json:"value"`
-}
-
-func (yt *youtrack) UpdateIssue(issue *IssueCreateRequest, folder, git, gitBuild string) (*IssueUpdateRequest, error) {
+func (yt *youtrack) UpdateIssue(issue *d.IssueCreateRequest, folder, git, gitBuild string) (*d.IssueUpdateRequest, error) {
 	// Set Folder, Git, GitBuild to the Issue:
-	update := IssueUpdateRequest{
+	update := d.IssueUpdateRequest{
 		IssueCreateRequest: *issue,
-		CustomFields: []CustomField{
+		CustomFields: []d.CustomField{
 			{
 				Name:  "Директория графики",
 				Type:  "SimpleIssueCustomField",

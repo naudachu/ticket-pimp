@@ -17,7 +17,14 @@ type Handler struct {
 
 func NewHandler(gitBaseURL, gitToken, cloudBaseURL, cloudAuthUser, cloudAuthPass, ytBaseURL, ytToken string) *Handler {
 	return &Handler{
-		workflow: controller.NewWorkflowController(gitBaseURL, gitToken, cloudBaseURL, cloudAuthUser, cloudAuthPass, ytBaseURL, ytToken),
+		workflow: controller.NewWorkflowController(
+			gitBaseURL,
+			gitToken,
+			cloudBaseURL,
+			cloudAuthUser,
+			cloudAuthPass,
+			ytBaseURL,
+			ytToken),
 	}
 }
 
@@ -52,15 +59,6 @@ func (h *Handler) NewRepoHandler(ctx context.Context, mu *tgb.MessageUpdate) err
 	return mu.Answer(newRepoAnswer(repoStr)).ParseMode(tg.HTML).DoVoid(ctx)
 }
 
-func newFolderAnswer(name string) string {
-	return tg.HTML.Text(
-		tg.HTML.Line(
-			"Folder ",
-			name,
-			"has been created!",
-		),
-	)
-}
 func (h *Handler) NewFolderHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
 
 	str := strings.Replace(mu.Text, "/folder", "", 1)
@@ -69,13 +67,23 @@ func (h *Handler) NewFolderHandler(ctx context.Context, mu *tgb.MessageUpdate) e
 		return errors.New("empty command provided")
 	}
 
-	nameStr, _, err := h.workflow.CreateFolder(str)
+	cloud, err := h.workflow.CreateFolder(str)
 
 	if err != nil {
 		return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
 	}
 
-	return mu.Answer(newFolderAnswer(nameStr)).ParseMode(tg.HTML).DoVoid(ctx)
+	answer := tg.HTML.Text(
+		tg.HTML.Line(
+			"✨ Shiny folder",
+			tg.HTML.Link(cloud.FolderName, cloud.FolderURL),
+			"has been created!",
+		),
+	)
+
+	return mu.Answer(answer).
+		ParseMode(tg.HTML).
+		DoVoid(ctx)
 }
 
 func errorAnswer(errorMsg string) string {

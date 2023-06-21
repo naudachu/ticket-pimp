@@ -10,7 +10,6 @@ import (
 
 type Git struct {
 	*Client
-	*domain.Git
 }
 
 type IGit interface {
@@ -33,15 +32,6 @@ func NewGit(base, token string) *Git {
 
 	return &Git{
 		Client: &Client{client},
-		Git: &domain.Git{
-			Name:     "",
-			FullName: "",
-			Private:  true,
-			Url:      "",
-			CloneUrl: "",
-			HtmlUrl:  "",
-			SshUrl:   "",
-		},
 	}
 }
 
@@ -63,6 +53,7 @@ func (gb *Git) NewRepo(name string) (*domain.Git, error) {
 	}
 
 	var git domain.Git
+	git.Private = true
 
 	resp, err := gb.R().
 		SetBody(&payload).
@@ -77,6 +68,7 @@ func (gb *Git) NewRepo(name string) (*domain.Git, error) {
 }
 
 func (gb *Git) AppsAsCollaboratorTo(git *domain.Git) (*domain.Git, error) {
+
 	payloadPermission := permissionRequest{
 		Perm: "admin",
 	}
