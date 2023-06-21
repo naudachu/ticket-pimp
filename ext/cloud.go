@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"ticket-pimp/domain"
 	"ticket-pimp/helpers"
 	"time"
@@ -34,6 +35,23 @@ func NewCloud(base, user, pass string) *Cloud {
 	}
 }
 
+type MultistatusObj struct {
+	XMLName     xml.Name `xml:"multistatus"`
+	Multistatus struct {
+		XMLName  xml.Name `xml:"response"`
+		Propstat struct {
+			XMLName xml.Name `xml:"propstat"`
+			Prop    struct {
+				XMLName xml.Name `xml:"prop"`
+				FileID  struct {
+					XMLName xml.Name `xml:"fileid"`
+					ID      string   `xml:",chardata"`
+				}
+			}
+		}
+	}
+}
+
 func (c *Cloud) CreateFolder(name string) (*domain.Cloud, error) {
 	rootDir := os.Getenv("ROOTDIR")
 
@@ -54,37 +72,6 @@ func (c *Cloud) CreateFolder(name string) (*domain.Cloud, error) {
 
 		cloud.FolderURL = c.BaseURL + cloud.FolderPath
 
-		/*
-			type ResponseObj struct {
-				Multistatus struct {
-					Response struct {
-						Href struct {
-							Propstat struct {
-								Prop struct {
-									FileID int `json:"oc:fileid"`
-								} `json:"d:prop"`
-							} `json:"d:propstat"`
-						} `json:"d:href"`
-					} `json:"d:response"`
-				} `json:"d:multistatus"`
-			}*/
-
-		type ResponseObj struct {
-			XMLName     xml.Name `xml:"d:multistatus"`
-			Multistatus struct {
-				XMLName  xml.Name `xml:"d:multistatus"`
-				Response struct {
-					Href struct {
-						Propstat struct {
-							Prop struct {
-								FileID string `xml:"oc:fileid"`
-							} `xml:"d:prop"`
-						} `xml:"d:propstat"`
-					} `xml:"d:href"`
-				} `xml:"d:response"`
-			} `xml:"d:multistatus"`
-		}
-
 		xmlFile, err := ioutil.ReadFile("./fileid.xml")
 
 		if err != nil {
@@ -92,22 +79,37 @@ func (c *Cloud) CreateFolder(name string) (*domain.Cloud, error) {
 			return nil, err // fix this return;
 		}
 
-		var id ResponseObj
-
 		resp, _ := c.R().
 			SetBody(xmlFile).
 			Send("PROPFIND", os.Getenv("HOMEPATH")+os.Getenv("ROOTDIR")+cloud.FolderName)
 
-		xmlEncodingErr := resp.UnmarshalXml(&id)
-		if xmlEncodingErr != nil {
-			log.Print(err)
+		id, err := getFileIDFromRespBody(resp.Bytes())
+
+		if err != nil {
+			log.Print(err) // [ ] Если тут проблема - надо пытаться засетать полную ссылку
 		}
 
-		log.Print(resp)
-
+		cloud.PrivateURL = os.Getenv("CLOUD_BASE_URL") + "/f/" + strconv.Itoa(id)
 	}
 
 	return &cloud, err
+}
+
+func getFileIDFromRespBody(str []byte) (int, error) {
+
+	var multi MultistatusObj
+
+	err := xml.Unmarshal(str, &multi)
+	if err != nil {
+		return 0, fmt.Errorf("XML Unmarshal error: %v", err)
+	}
+
+	id, err := strconv.Atoi(multi.Multistatus.Propstat.Prop.FileID.ID)
+	if err != nil {
+		return 0, fmt.Errorf("FileID str to int convertion error: %v", err)
+	}
+
+	return id, nil
 }
 
 func (c *Cloud) ShareToExternals(cloud *domain.Cloud) (*domain.Cloud, error) {

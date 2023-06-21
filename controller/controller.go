@@ -76,7 +76,7 @@ func (wc *WorkflowController) Workflow(name string) (string, error) {
 
 		wg.Wait()
 
-		yt.UpdateIssue(issue, cloud.FolderURL, git, gitBuild)
+		yt.UpdateIssue(issue, cloud.PrivateURL, git, gitBuild)
 	}
 	return issue.Key, nil
 }
