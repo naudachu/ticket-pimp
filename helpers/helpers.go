@@ -1,7 +1,9 @@
 package helpers
 
 import (
+	"encoding/xml"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -21,4 +23,38 @@ func GitNaming(input string) string {
 
 	// Join words and return
 	return strings.Join(words, "-")
+}
+
+type MultistatusObj struct {
+	XMLName     xml.Name `xml:"multistatus"`
+	Multistatus struct {
+		XMLName  xml.Name `xml:"response"`
+		Propstat struct {
+			XMLName xml.Name `xml:"propstat"`
+			Prop    struct {
+				XMLName xml.Name `xml:"prop"`
+				FileID  struct {
+					XMLName xml.Name `xml:"fileid"`
+					ID      string   `xml:",chardata"`
+				}
+			}
+		}
+	}
+}
+
+func GetFileIDFromRespBody(str []byte) int {
+
+	var multi MultistatusObj
+
+	err := xml.Unmarshal(str, &multi)
+	if err != nil {
+		return 0
+	}
+
+	id, err := strconv.Atoi(multi.Multistatus.Propstat.Prop.FileID.ID)
+	if err != nil {
+		return 0
+	}
+
+	return id
 }

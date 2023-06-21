@@ -1,7 +1,6 @@
-package ext
+package helpers
 
 import (
-	"log"
 	"testing"
 )
 
@@ -12,7 +11,7 @@ const (
 // [ ] todo normal test...
 func TestGetFileID(t *testing.T) {
 
-	str, err := getFileIDFromRespBody([]byte(EXAMPLE))
-	log.Print(str, err)
-
+	if output := GetFileIDFromRespBody([]byte(EXAMPLE)); output != 33225 {
+		t.Errorf("Output %q not equal to expected %q", output, 33225)
+	}
 }
