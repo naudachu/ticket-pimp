@@ -23,18 +23,26 @@ import (
 </d:multistatus>
 
 */
+/*
+type MultistatusObj struct {
+	XMLName     xml.Name `xml:"multistatus"`
+	Multistatus struct {
+		XMLName xml.Name `xml:"response"`
+		Other   string   `xml:",innerxml"`
+	}
+}*/
 
 type MultistatusObj struct {
 	XMLName     xml.Name `xml:"multistatus"`
 	Multistatus struct {
-		ResponseObj
-	}
-}
-
-type ResponseObj struct {
-	XMLName  xml.Name `xml:"response"`
-	Response struct {
-		Content string `xml:",chardata"`
+		XMLName  xml.Name `xml:"response"`
+		Propstat struct {
+			XMLName xml.Name `xml:"propstat"`
+			Prop    struct {
+				XMLName xml.Name `xml:"prop"`
+				Other   string   `xml:",innerxml"`
+			}
+		}
 	}
 }
 
@@ -49,7 +57,7 @@ func GetFileID(str string) string {
 	if err != nil {
 		fmt.Print(err)
 	}
-	return multi.Multistatus.Response.Content
+	return multi.Multistatus.Propstat.Prop.Other
 }
 
 func TestGetFileID(t *testing.T) {
