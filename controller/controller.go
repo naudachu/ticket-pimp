@@ -2,13 +2,41 @@ package controller
 
 import (
 	"fmt"
-	"os"
 	"sync"
+	d "ticket-pimp/domain"
 	"ticket-pimp/ext"
 )
 
-func Workflow(name string) (string, error) {
-	yt := ext.NewYT(os.Getenv("YT_URL"), os.Getenv("YT_TOKEN"))
+type WorkflowController struct {
+	iGit      ext.IGit
+	iCloud    ext.ICloud
+	iYouTrack ext.IYouTrack
+}
+
+func NewWorkflowController(
+	gitBaseURL,
+	gitToken,
+	cloudBaseURL,
+	cloudAuthUser,
+	cloudAuthPass,
+	ytBaseURL,
+	ytToken string,
+) *WorkflowController {
+	return &WorkflowController{
+		iGit:      ext.NewGit(gitBaseURL, gitToken),
+		iCloud:    ext.NewCloud(cloudBaseURL, cloudAuthUser, cloudAuthPass),
+		iYouTrack: ext.NewYT(ytBaseURL, ytToken),
+	}
+}
+
+type IWorkflowController interface {
+	Workflow(name string) (string, error)
+	CreateRepo(name string) (*d.Git, error)
+	CreateFolder(name string) (*d.Folder, error)
+}
+
+func (wc *WorkflowController) Workflow(name string) (string, error) {
+	yt := wc.iYouTrack
 
 	projects, err := yt.GetProjects()
 
@@ -16,7 +44,7 @@ func Workflow(name string) (string, error) {
 		return "", err
 	}
 
-	issue, err := yt.CreateIssue(projects[0].ID, name)
+	issue, err := yt.CreateIssue(projects[1].ID, name)
 
 	if err != nil {
 		return "", err
@@ -24,60 +52,66 @@ func Workflow(name string) (string, error) {
 
 	if issue != nil {
 		var (
-			git, gitBuild, folder string
+			git, gitBuild *d.Git
+			cloud         *d.Folder
 		)
 
 		var wg sync.WaitGroup
 		wg.Add(3)
 
-		go func() {
+		go func(ref **d.Git) {
 			defer wg.Done()
-			git, _ = CreateRepo(issue.Key, 0)
-		}()
+			*ref, _ = wc.CreateRepo(issue.Key)
+		}(&git)
 
-		go func() {
+		go func(ref **d.Git) {
 			defer wg.Done()
-			gitBuild, _ = CreateRepo(issue.Key+"-build", 1)
-		}()
+			*ref, _ = wc.CreateRepo(issue.Key + "-build")
+		}(&gitBuild)
 
-		go func() {
+		go func(ref **d.Folder) {
 			defer wg.Done()
-			folder = CreateFolder(issue.Key + " - " + issue.Summary)
-		}()
+			*ref, _ = wc.CreateFolder(issue.Key + " - " + issue.Summary)
+		}(&cloud)
 
 		wg.Wait()
 
-		yt.UpdateIssue(issue, folder, git, gitBuild)
+		yt.UpdateIssue(
+			issue,
+			cloud.PrivateURL,
+			git.HtmlUrl,
+			fmt.Sprintf("ssh://%s/%s.git", gitBuild.SshUrl, gitBuild.FullName))
 	}
 	return issue.Key, nil
 }
 
-func CreateRepo(name string, param uint) (string, error) {
-	gb := ext.NewGit(os.Getenv("GIT_BASE_URL"), os.Getenv("GIT_TOKEN"))
-	repo, err := gb.NewRepo(name)
-	gb.AppsAsCollaboratorTo(repo)
-
-	// Result string formatting:
-	if repo != nil {
-		switch param {
-		case 0:
-			return repo.HtmlUrl, err
-		case 1:
-			return fmt.Sprintf("ssh://%s/%s.git", repo.SshUrl, repo.FullName), err
-		default:
-			return repo.CloneUrl, err
-		}
+func (wc *WorkflowController) CreateRepo(name string) (*d.Git, error) {
+	//Create git repository with iGit interface;
+	repo, err := wc.iGit.NewRepo(name)
+	if err != nil {
+		return nil, err
 	}
 
-	return "", err
+	//Set 'apps' as collaborator to created repository;
+	_, err = wc.iGit.AppsAsCollaboratorTo(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	return repo, nil
 }
 
-func CreateFolder(name string) string {
-	oc := ext.NewCloud(os.Getenv("CLOUD_BASE_URL"), os.Getenv("CLOUD_USER"), os.Getenv("CLOUD_PASS"))
+func (wc *WorkflowController) CreateFolder(name string) (*d.Folder, error) {
 
-	cloud, _ := oc.CreateFolder(name)
-	if cloud != nil {
-		return cloud.FolderPath
+	//Create ownCloud folder w/ iCloud interface;
+	cloud, err := wc.iCloud.CreateFolder(name)
+	if cloud == nil {
+		return nil, err
 	}
-	return "no-folder"
+
+	/* [ ] Experimental call:
+	wc.iCloud.ShareToExternals(cloud)
+	*/
+
+	return cloud, err
 }

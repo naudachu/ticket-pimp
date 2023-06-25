@@ -10,7 +10,11 @@ import (
 
 type Git struct {
 	*Client
-	*domain.Git
+}
+
+type IGit interface {
+	NewRepo(string) (*domain.Git, error)
+	AppsAsCollaboratorTo(*domain.Git) (*domain.Git, error)
 }
 
 func NewGit(base, token string) *Git {
@@ -28,15 +32,6 @@ func NewGit(base, token string) *Git {
 
 	return &Git{
 		Client: &Client{client},
-		Git: &domain.Git{
-			Name:     "",
-			FullName: "",
-			Private:  true,
-			Url:      "",
-			CloneUrl: "",
-			HtmlUrl:  "",
-			SshUrl:   "",
-		},
 	}
 }
 
@@ -58,32 +53,37 @@ func (gb *Git) NewRepo(name string) (*domain.Git, error) {
 	}
 
 	var git domain.Git
+	git.Private = true
 
-	resp, err := gb.R().
+	resp, _ := gb.R().
 		SetBody(&payload).
 		SetSuccessResult(&git).
 		Post("/user/repos")
-		//Post("/orgs/apps/repos")
 
-	if err != nil {
-		log.Print(resp)
+	if resp.Err != nil {
+		log.Print(resp.Err)
+		return nil, resp.Err
 	}
 
-	return &git, err
+	return &git, nil
 }
 
-func (gb *Client) AppsAsCollaboratorTo(git *domain.Git) (*domain.Git, error) {
-	payloadPermission := permissionRequest{
+func (gb *Git) AppsAsCollaboratorTo(git *domain.Git) (*domain.Git, error) {
+
+	payload := permissionRequest{
 		Perm: "admin",
 	}
 
-	resp, err := gb.R().
-		SetBody(&payloadPermission).
-		Put("/repos/" + os.Getenv("GIT_USER") + "/" + git.Name + "/collaborators/apps")
+	respURL := "/repos/" + os.Getenv("GIT_USER") + "/" + git.Name + "/collaborators/apps"
 
-	if err != nil {
-		log.Print(resp)
+	resp, _ := gb.R().
+		SetBody(&payload).
+		Put(respURL)
+
+	if resp.Err != nil {
+		log.Print(resp.Err)
+		return nil, resp.Err
 	}
 
-	return git, err
+	return git, nil
 }
