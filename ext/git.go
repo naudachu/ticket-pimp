@@ -55,31 +55,35 @@ func (gb *Git) NewRepo(name string) (*domain.Git, error) {
 	var git domain.Git
 	git.Private = true
 
-	resp, err := gb.R().
+	resp, _ := gb.R().
 		SetBody(&payload).
 		SetSuccessResult(&git).
 		Post("/user/repos")
 
-	if err != nil {
-		log.Print(resp)
+	if resp.Err != nil {
+		log.Print(resp.Err)
+		return nil, resp.Err
 	}
 
-	return &git, err
+	return &git, nil
 }
 
 func (gb *Git) AppsAsCollaboratorTo(git *domain.Git) (*domain.Git, error) {
 
-	payloadPermission := permissionRequest{
+	payload := permissionRequest{
 		Perm: "admin",
 	}
 
-	resp, err := gb.R().
-		SetBody(&payloadPermission).
-		Put("/repos/" + os.Getenv("GIT_USER") + "/" + git.Name + "/collaborators/apps")
+	respURL := "/repos/" + os.Getenv("GIT_USER") + "/" + git.Name + "/collaborators/apps"
 
-	if err != nil {
-		log.Print(resp)
+	resp, _ := gb.R().
+		SetBody(&payload).
+		Put(respURL)
+
+	if resp.Err != nil {
+		log.Print(resp.Err)
+		return nil, resp.Err
 	}
 
-	return git, err
+	return git, nil
 }

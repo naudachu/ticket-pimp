@@ -1,6 +1,7 @@
 package ext
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	d "ticket-pimp/domain"
@@ -49,7 +50,7 @@ func (c *Cloud) CreateFolder(name string) (*d.Folder, error) {
 
 	cloud.PathTo = parentPath + rootDir + name
 
-	resp, err := c.R().
+	resp, _ := c.R().
 		Send("MKCOL", requestPath)
 
 	if resp.IsSuccessState() {
@@ -57,12 +58,12 @@ func (c *Cloud) CreateFolder(name string) (*d.Folder, error) {
 		cloud.PrivateURL = c.BaseURL + cloud.PathTo
 
 		// Try to set short URL to the d entity
-		if err = c.setPrivateURL(requestPath, &cloud); err != nil {
-			return &cloud, nil
+		if err := c.setPrivateURL(requestPath, &cloud); err != nil {
+			return &cloud, err
 		}
 	}
 
-	return &cloud, err
+	return &cloud, nil
 }
 
 func (c *Cloud) setPrivateURL(requestPath string, cloud *d.Folder) error {
@@ -78,22 +79,23 @@ func (c *Cloud) setPrivateURL(requestPath string, cloud *d.Folder) error {
 		}
 	*/
 
-	resp, err := c.R().
+	resp, _ := c.R().
 		SetBody(payload).
 		Send("PROPFIND", requestPath)
 
-	if err != nil {
-		return err
+	if resp.Err != nil {
+		return resp.Err
 	}
 
 	id := helpers.GetFileIDFromRespBody(resp.Bytes())
 
-	if id != 0 {
-		cloud.PrivateURL = c.BaseURL + "/f/" + strconv.Itoa(id)
-		return nil
+	if id == 0 {
+		return fmt.Errorf("unable to get fileid")
 	}
 
-	return err
+	cloud.PrivateURL = c.BaseURL + "/f/" + strconv.Itoa(id)
+
+	return nil
 }
 
 func (c *Cloud) ShareToExternals(cloud *d.Folder) (*d.Folder, error) {

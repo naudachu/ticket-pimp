@@ -13,12 +13,6 @@ type WorkflowController struct {
 	iYouTrack ext.IYouTrack
 }
 
-type IWorkflowController interface {
-	Workflow(name string) (string, error)
-	CreateRepo(name string, param uint) (string, error)
-	CreateFolder(name string) (*d.Folder, error)
-}
-
 func NewWorkflowController(
 	gitBaseURL,
 	gitToken,
@@ -33,6 +27,12 @@ func NewWorkflowController(
 		iCloud:    ext.NewCloud(cloudBaseURL, cloudAuthUser, cloudAuthPass),
 		iYouTrack: ext.NewYT(ytBaseURL, ytToken),
 	}
+}
+
+type IWorkflowController interface {
+	Workflow(name string) (string, error)
+	CreateRepo(name string) (*d.Git, error)
+	CreateFolder(name string) (*d.Folder, error)
 }
 
 func (wc *WorkflowController) Workflow(name string) (string, error) {
@@ -52,22 +52,22 @@ func (wc *WorkflowController) Workflow(name string) (string, error) {
 
 	if issue != nil {
 		var (
-			git, gitBuild string
+			git, gitBuild *d.Git
 			cloud         *d.Folder
 		)
 
 		var wg sync.WaitGroup
 		wg.Add(3)
 
-		go func() {
+		go func(ref **d.Git) {
 			defer wg.Done()
-			git, _ = wc.CreateRepo(issue.Key, 0)
-		}()
+			*ref, _ = wc.CreateRepo(issue.Key)
+		}(&git)
 
-		go func() {
+		go func(ref **d.Git) {
 			defer wg.Done()
-			gitBuild, _ = wc.CreateRepo(issue.Key+"-build", 1)
-		}()
+			*ref, _ = wc.CreateRepo(issue.Key + "-build")
+		}(&gitBuild)
 
 		go func(ref **d.Folder) {
 			defer wg.Done()
@@ -76,31 +76,29 @@ func (wc *WorkflowController) Workflow(name string) (string, error) {
 
 		wg.Wait()
 
-		yt.UpdateIssue(issue, cloud.PrivateURL, git, gitBuild)
+		yt.UpdateIssue(
+			issue,
+			cloud.PrivateURL,
+			git.HtmlUrl,
+			fmt.Sprintf("ssh://%s/%s.git", gitBuild.SshUrl, gitBuild.FullName))
 	}
 	return issue.Key, nil
 }
 
-func (wc *WorkflowController) CreateRepo(name string, param uint) (string, error) {
+func (wc *WorkflowController) CreateRepo(name string) (*d.Git, error) {
 	//Create git repository with iGit interface;
 	repo, err := wc.iGit.NewRepo(name)
-
-	//Set 'apps' as collaborator to created repository;
-	wc.iGit.AppsAsCollaboratorTo(repo)
-
-	// Result string formatting:
-	if repo != nil {
-		switch param {
-		case 0:
-			return repo.HtmlUrl, err
-		case 1:
-			return fmt.Sprintf("ssh://%s/%s.git", repo.SshUrl, repo.FullName), err
-		default:
-			return repo.CloneUrl, err
-		}
+	if err != nil {
+		return nil, err
 	}
 
-	return "", err
+	//Set 'apps' as collaborator to created repository;
+	_, err = wc.iGit.AppsAsCollaboratorTo(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	return repo, nil
 }
 
 func (wc *WorkflowController) CreateFolder(name string) (*d.Folder, error) {

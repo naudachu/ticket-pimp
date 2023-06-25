@@ -43,15 +43,15 @@ func (yt *youtrack) GetProjects() ([]d.Project, error) {
 
 	var projects []d.Project
 
-	_, err := yt.R().
+	resp, _ := yt.R().
 		EnableDump().
 		SetQueryParam("fields", "id,name,shortName").
 		SetSuccessResult(&projects).
 		Get("/admin/projects")
 
 	// Check if the request failed;
-	if err != nil {
-		return nil, fmt.Errorf("some problem with YT request. error message: %v", err)
+	if resp.Err != nil {
+		return nil, fmt.Errorf("some problem with YT request. error message: %v", resp.Err)
 	}
 
 	return projects, nil
@@ -71,15 +71,15 @@ func (yt *youtrack) CreateIssue(projectID, name string) (*d.IssueCreateRequest, 
 	}
 
 	// Push issue to the YT;
-	_, err := yt.R().
+	resp, _ := yt.R().
 		SetQueryParam("fields", "idReadable,id").
 		SetBody(&issue).
 		SetSuccessResult(&issue).
 		Post("/issues")
 
 	// Check if the request failed;
-	if err != nil {
-		return nil, fmt.Errorf("some problem with YT request. error message: %v", err)
+	if resp.Err != nil {
+		return nil, fmt.Errorf("some problem with YT request. error message: %v", resp.Err)
 	}
 
 	return &issue, nil
@@ -109,14 +109,14 @@ func (yt *youtrack) UpdateIssue(issue *d.IssueCreateRequest, folder, git, gitBui
 	}
 
 	// Push issue update to  YT
-	resp, err := yt.R().
+	resp, _ := yt.R().
 		SetBody(&update).
 		SetSuccessResult(&issue).
 		Post("/issues/" + issue.Key)
 
 		// Check if the request failed;
-	if err != nil {
-		return nil, fmt.Errorf("some problem with YT request. error message: %v", err)
+	if resp.Err != nil {
+		return nil, fmt.Errorf("some problem with YT request. error message: %v", resp.Err)
 	}
 
 	if !resp.IsSuccessState() {

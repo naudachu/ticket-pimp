@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"ticket-pimp/controller"
+	d "ticket-pimp/domain"
 
 	"github.com/mr-linch/go-tg"
 	"github.com/mr-linch/go-tg/tgb"
@@ -32,11 +33,29 @@ func (h *Handler) PingHandler(ctx context.Context, mu *tgb.MessageUpdate) error 
 	return mu.Answer("pong").DoVoid(ctx)
 }
 
-func newRepoAnswer(name string) string {
+type git struct {
+	name string
+	url  string
+
+	git string
+	ssh string
+}
+
+func newGit(d *d.Git) *git {
+	return &git{
+		name: d.Name,
+		url:  d.HtmlUrl,
+		git:  d.CloneUrl,
+		ssh:  fmt.Sprintf("ssh://%s/%s.git", d.SshUrl, d.FullName),
+	}
+}
+
+// FYI: Telegram doesn't renders this hyperlink, if the url is localhost 🤷‍♂️
+func (g *git) prepareAnswer() string {
 	return tg.HTML.Text(
 		tg.HTML.Line(
 			"Repo ",
-			name,
+			tg.HTML.Link(g.name, g.url),
 			"has been created!",
 		),
 	)
@@ -50,13 +69,16 @@ func (h *Handler) NewRepoHandler(ctx context.Context, mu *tgb.MessageUpdate) err
 		return errors.New("empty command provided")
 	}
 
-	repoStr, err := h.workflow.CreateRepo(str, 0)
+	var g *d.Git
+	g, err := h.workflow.CreateRepo(str)
 
 	if err != nil {
 		return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
 	}
 
-	return mu.Answer(newRepoAnswer(repoStr)).ParseMode(tg.HTML).DoVoid(ctx)
+	resp := newGit(g).prepareAnswer()
+
+	return mu.Answer(resp).ParseMode(tg.HTML).DoVoid(ctx)
 }
 
 func (h *Handler) NewFolderHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
