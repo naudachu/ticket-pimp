@@ -16,7 +16,7 @@ type youtrack struct {
 
 type IYouTrack interface {
 	GetProjects() ([]d.Project, error)
-	CreateIssue(projectID, name string) (*d.IssueCreateRequest, error)
+	CreateIssue(projectID, name, description string) (*d.IssueCreateRequest, error)
 	UpdateIssue(issue *d.IssueCreateRequest, folder, git, gitBuild string) (*d.IssueUpdateRequest, error)
 }
 
@@ -59,15 +59,15 @@ func (yt *youtrack) GetProjects() ([]d.Project, error) {
 
 // CreateIssue
 // example: newIssue := yt.CreateIssue("0-2", "Summary", "Description");
-func (yt *youtrack) CreateIssue(projectID, name string) (*d.IssueCreateRequest, error) {
+func (yt *youtrack) CreateIssue(projectID, name string, description string) (*d.IssueCreateRequest, error) {
 
 	// Create an issue with the provided:, Project ID, Name, Description;
 	issue := d.IssueCreateRequest{
 		ProjectID: d.ProjectID{
 			ID: projectID, //"id":"0-2"
 		},
-		Summary: name,
-		//Description: description,
+		Summary:     name,
+		Description: description,
 	}
 
 	// Push issue to the YT;

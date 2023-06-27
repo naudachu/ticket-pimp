@@ -53,7 +53,8 @@ func run(ctx context.Context) error {
 		Message(h.NewTicketHandler, tgb.TextHasPrefix("/new")).
 		Message(h.PingHandler, tgb.Command("ping")).
 		Message(h.NewRepoHandler, tgb.TextHasPrefix("/repo")).
-		Message(h.NewFolderHandler, tgb.TextHasPrefix("/folder"))
+		Message(h.NewFolderHandler, tgb.TextHasPrefix("/folder")).
+		Message(h.NewTaskHandler, tgb.TextHasPrefix("/task"))
 
 	return tgb.NewPoller(
 		router,
