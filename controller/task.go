@@ -40,5 +40,5 @@ func (wc *WorkflowController) CreateTask(t *Task) (*Task, error) {
 	t.Key = issue.Key
 	t.URL = fmt.Sprintf("https://marlerino.youtrack.cloud/issue/%s", issue.Key)
 
-	return t, nil //[ ] normal return;
+	return t, nil
 }
