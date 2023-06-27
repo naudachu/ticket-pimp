@@ -142,3 +142,36 @@ func newTicketAnswer(name string) string {
 		),
 	)
 }
+
+func (h *Handler) NewTaskHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
+
+	taskText := strings.TrimSpace(strings.Replace(mu.Text, "/task", "", 1))
+	words := strings.Split(taskText, " ")
+
+	var summaryTail string
+	if len(words) > 3 {
+		summaryTail = strings.Join(words[0:3], " ")
+	} else {
+		summaryTail = strings.Join(words, " ")
+	}
+
+	task := h.workflow.NewTask(
+		summaryTail,
+		taskText,
+		mu.From.Username.PeerID(),
+		mu.From.Username.Link(),
+	)
+
+	createdTicket, err := h.workflow.CreateTask(task)
+	if err != nil {
+		return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
+	}
+
+	return mu.Answer(tg.HTML.Text(
+		tg.HTML.Line(
+			"🤘 Задача",
+			tg.HTML.Link(createdTicket.Key, createdTicket.URL),
+			"была создана!",
+		),
+	)).ParseMode(tg.HTML).DoVoid(ctx)
+}
