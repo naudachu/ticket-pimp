@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	d "ticket-pimp/domain"
+	d "ticket-pimp/bot/domain"
 
 	"github.com/imroc/req/v3"
 )

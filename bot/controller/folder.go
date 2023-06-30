@@ -1,6 +1,6 @@
 package controller
 
-import d "ticket-pimp/domain"
+import d "ticket-pimp/bot/domain"
 
 func (wc *WorkflowController) CreateFolder(name string) (*d.Folder, error) {
 

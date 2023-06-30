@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
-	"ticket-pimp/controller"
-	d "ticket-pimp/domain"
+	"ticket-pimp/bot/controller"
+	d "ticket-pimp/bot/domain"
 
 	"github.com/mr-linch/go-tg"
 	"github.com/mr-linch/go-tg/tgb"
@@ -30,6 +31,7 @@ func NewHandler(gitBaseURL, gitToken, cloudBaseURL, cloudAuthUser, cloudAuthPass
 }
 
 func (h *Handler) PingHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
+
 	return mu.Answer("pong").DoVoid(ctx)
 }
 
@@ -51,7 +53,7 @@ func newGit(d *d.Git) *git {
 }
 
 // FYI: Telegram doesn't renders this hyperlink, if the url is localhost 🤷‍♂️
-func (g *git) prepareAnswer() string {
+func (g *git) PrepareAnswer() string {
 	return tg.HTML.Text(
 		tg.HTML.Line(
 			"Repo ",
@@ -76,7 +78,7 @@ func (h *Handler) NewRepoHandler(ctx context.Context, mu *tgb.MessageUpdate) err
 		return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
 	}
 
-	resp := newGit(g).prepareAnswer()
+	resp := newGit(g).PrepareAnswer()
 
 	return mu.Answer(resp).ParseMode(tg.HTML).DoVoid(ctx)
 }
@@ -174,4 +176,52 @@ func (h *Handler) NewTaskHandler(ctx context.Context, mu *tgb.MessageUpdate) err
 			"была создана!",
 		),
 	)).ParseMode(tg.HTML).DoVoid(ctx)
+}
+
+func (h *Handler) NewConversion(ctx context.Context, mu *tgb.MessageUpdate) error {
+	msg := strings.TrimSpace(strings.Replace(mu.Caption, "/conversion", "", 1))
+
+	appID, token := normalizeToken(msg)
+
+	fid := mu.Update.Message.Document.FileID
+
+	client := mu.Client
+
+	file, err := client.GetFile(fid).Do(ctx)
+	if err != nil {
+		return err
+	}
+
+	f, err := client.Download(ctx, file.FilePath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	l := h.workflow.ThrowConversions(f, appID, token)
+
+	if len(l.Advertiser) != 0 {
+		return mu.Answer(tg.HTML.Text(
+			"Неуспешные запросы:",
+			tg.HTML.Code(strings.Join(l.Advertiser, ", ")),
+		)).ParseMode(tg.HTML).DoVoid(ctx)
+	}
+
+	return mu.Answer(tg.HTML.Text(
+		"Конверсии отправлены",
+	)).ParseMode(tg.HTML).DoVoid(ctx)
+}
+
+func normalizeToken(msg string) (string, string) {
+	msg = strings.TrimSpace(msg)
+
+	args := strings.Split(msg, "|")
+
+	if len(args) != 2 {
+		log.Print(len(args))
+		return "", ""
+	}
+
+	return args[0], args[0] + "|" + args[1]
+
 }

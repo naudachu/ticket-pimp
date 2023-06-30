@@ -3,42 +3,8 @@ package controller
 import (
 	"fmt"
 	"sync"
-	d "ticket-pimp/domain"
-	"ticket-pimp/ext"
+	d "ticket-pimp/bot/domain"
 )
-
-type WorkflowController struct {
-	iGit      ext.IGit
-	iCloud    ext.ICloud
-	iYouTrack ext.IYouTrack
-	iCoda     ext.ICoda
-}
-
-func NewWorkflowController(
-	gitBaseURL,
-	gitToken,
-	cloudBaseURL,
-	cloudAuthUser,
-	cloudAuthPass,
-	ytBaseURL,
-	ytToken string,
-) *WorkflowController {
-	return &WorkflowController{
-		iGit:      ext.NewGit(gitBaseURL, gitToken),
-		iCloud:    ext.NewCloud(cloudBaseURL, cloudAuthUser, cloudAuthPass),
-		iYouTrack: ext.NewYT(ytBaseURL, ytToken),
-		iCoda:     ext.NewCodaClient(),
-	}
-}
-
-type IWorkflowController interface {
-	Workflow(name string) (string, error)
-	CreateRepo(name string) (*d.Git, error)
-	CreateFolder(name string) (*d.Folder, error)
-
-	NewTask(summ, desc, c, cLink string) *Task
-	CreateTask(t *Task) (*Task, error)
-}
 
 func (wc *WorkflowController) Workflow(name string) (string, error) {
 	yt := wc.iYouTrack

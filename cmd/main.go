@@ -7,7 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"ticket-pimp/handler"
+	"ticket-pimp/bot/handler"
 
 	"github.com/joho/godotenv"
 	"github.com/mr-linch/go-tg"
@@ -22,20 +22,27 @@ func main() {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill, syscall.SIGTERM)
 	defer cancel()
 
-	if err := run(ctx); err != nil {
+	if err := runBot(ctx); err != nil {
 		fmt.Println(err)
 		defer os.Exit(1)
 	}
 }
 
+// env
+// env function reads provided file and setup envirmental variables;
 func env(envFilePath string) {
 	err := godotenv.Load(envFilePath)
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatal("Error while loading env file")
 	}
 }
 
-func run(ctx context.Context) error {
+// runBot ...
+// ..function creates new Telegram BOT instance
+// ..throw env variables through bot's handlers
+// ..setup tg bot router;
+// and finally returns tgb.Poller
+func runBot(ctx context.Context) error {
 
 	client := tg.New(os.Getenv("TG_API"))
 
@@ -54,7 +61,8 @@ func run(ctx context.Context) error {
 		Message(h.PingHandler, tgb.Command("ping")).
 		Message(h.NewRepoHandler, tgb.TextHasPrefix("/repo")).
 		Message(h.NewFolderHandler, tgb.TextHasPrefix("/folder")).
-		Message(h.NewTaskHandler, tgb.TextHasPrefix("/task"))
+		Message(h.NewTaskHandler, tgb.TextHasPrefix("/task")).
+		Message(h.NewConversion, tgb.TextHasPrefix("/conversion"))
 
 	return tgb.NewPoller(
 		router,

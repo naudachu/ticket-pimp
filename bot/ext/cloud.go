@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	d "ticket-pimp/domain"
-	"ticket-pimp/helpers"
+	d "ticket-pimp/bot/domain"
+	"ticket-pimp/bot/helpers"
 	"time"
 )
 
