@@ -8,10 +8,15 @@ import (
 	"os/signal"
 	"syscall"
 	"ticket-pimp/bot/handler"
+	"ticket-pimp/bot/storage"
 
 	"github.com/joho/godotenv"
 	"github.com/mr-linch/go-tg"
 	"github.com/mr-linch/go-tg/tgb"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+
+	d "ticket-pimp/bot/domain"
 )
 
 func main() {
@@ -22,7 +27,10 @@ func main() {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, os.Kill, syscall.SIGTERM)
 	defer cancel()
 
-	if err := runBot(ctx); err != nil {
+	db := initDB()
+	taskStorage := storage.NewStorage(db)
+
+	if err := runBot(ctx, taskStorage); err != nil {
 		fmt.Println(err)
 		defer os.Exit(1)
 	}
@@ -42,7 +50,7 @@ func env(envFilePath string) {
 // ..throw env variables through bot's handlers
 // ..setup tg bot router;
 // and finally returns tgb.Poller
-func runBot(ctx context.Context) error {
+func runBot(ctx context.Context, r storage.Storage) error {
 
 	client := tg.New(os.Getenv("TG_API"))
 
@@ -54,6 +62,7 @@ func runBot(ctx context.Context) error {
 		os.Getenv("CLOUD_PASS"),
 		os.Getenv("YT_URL"),
 		os.Getenv("YT_TOKEN"),
+		r,
 	)
 
 	router := tgb.NewRouter().
@@ -68,4 +77,15 @@ func runBot(ctx context.Context) error {
 		router,
 		client,
 	).Run(ctx)
+}
+
+func initDB() *gorm.DB {
+
+	db, err := gorm.Open(postgres.Open(os.Getenv("DB_LINK")), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
+
+	db.AutoMigrate(&d.TaskEntity{})
+	return db
 }

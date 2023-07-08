@@ -10,10 +10,12 @@ import (
 	d "ticket-pimp/bot/domain"
 )
 
+//198.244.211.60:10908
+
 func (wc *WorkflowController) ThrowConversions(f io.ReadCloser, appID string, token string) *d.ConversionLog {
 	c := req.C().
 		SetBaseURL("https://graph.facebook.com/v15.0/").
-		DevMode()
+		SetProxyURL("http://198.244.211.60:10908") //.DevMode()
 
 	const currency = "USD"
 

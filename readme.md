@@ -9,6 +9,8 @@
 2. Запускаем в фоне: `docker run -d naudachu/ticket-pimp`
 
 # To-do P1:
+- [ ] Переделать conversions согласно: https://developers.facebook.com/docs/marketing-api/app-event-api/
+
 - [x] Выбирать проект в YouTrack по имени во время flow, а не по ID
 - [x] Делать запросы в Git, ownCloud параллельно;
 - [x] Сохранять правильную ссылку на Git;

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"ticket-pimp/bot/controller"
 	d "ticket-pimp/bot/domain"
+	"ticket-pimp/bot/storage"
 
 	"github.com/mr-linch/go-tg"
 	"github.com/mr-linch/go-tg/tgb"
@@ -17,7 +18,7 @@ type Handler struct {
 	workflow controller.IWorkflowController
 }
 
-func NewHandler(gitBaseURL, gitToken, cloudBaseURL, cloudAuthUser, cloudAuthPass, ytBaseURL, ytToken string) *Handler {
+func NewHandler(gitBaseURL, gitToken, cloudBaseURL, cloudAuthUser, cloudAuthPass, ytBaseURL, ytToken string, r storage.Storage) *Handler {
 	return &Handler{
 		workflow: controller.NewWorkflowController(
 			gitBaseURL,
@@ -26,7 +27,8 @@ func NewHandler(gitBaseURL, gitToken, cloudBaseURL, cloudAuthUser, cloudAuthPass
 			cloudAuthUser,
 			cloudAuthPass,
 			ytBaseURL,
-			ytToken),
+			ytToken,
+			r),
 	}
 }
 
