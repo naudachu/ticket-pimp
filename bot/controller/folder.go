@@ -10,9 +10,5 @@ func (wc *WorkflowController) CreateFolder(name string) (*d.Folder, error) {
 		return nil, err
 	}
 
-	/* Experimental call:
-	wc.iCloud.ShareToExternals(cloud)
-	*/
-
 	return cloud, err
 }
