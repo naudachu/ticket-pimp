@@ -1,5 +1,7 @@
 package domain
 
+import "fmt"
+
 type Project struct {
 	ID        string `json:"id"`
 	ShortName string `json:"shortName"`
@@ -8,6 +10,23 @@ type Project struct {
 
 type ProjectID struct {
 	ID string `json:"id"`
+}
+
+// Find needed project.ID in the project's list
+func (plist *ProjectsList) FindProjectByName(searchName string) (string, error) {
+
+	projectID := ""
+
+	for _, elem := range plist.Projects {
+		if elem.ShortName == searchName {
+			projectID = elem.ID
+		}
+	}
+
+	if projectID == "" {
+		return "", fmt.Errorf("project %s doesn't exist", searchName)
+	}
+	return projectID, nil
 }
 
 type IssueCreateRequest struct {
@@ -29,4 +48,8 @@ type CustomField struct {
 	Name  string `json:"name"`
 	Type  string `json:"$type"`
 	Value string `json:"value"`
+}
+
+type ProjectsList struct {
+	Projects []Project
 }
