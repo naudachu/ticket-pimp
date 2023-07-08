@@ -15,7 +15,7 @@ type youtrack struct {
 }
 
 type IYouTrack interface {
-	GetProjects() ([]d.Project, error)
+	GetProjectIDByName(searchName string) (string, error)
 	CreateIssue(projectID, name, description string) (*d.IssueCreateRequest, error)
 	UpdateIssue(issue *d.IssueCreateRequest, folder, git, gitBuild string) (*d.IssueUpdateRequest, error)
 }
@@ -39,14 +39,14 @@ func NewYT(base, token string) *youtrack {
 
 // GetProjects
 // provides an array of existing projects;
-func (yt *youtrack) GetProjects() ([]d.Project, error) {
+func (yt *youtrack) getProjects() (*d.ProjectsList, error) {
 
-	var projects []d.Project
+	var projects d.ProjectsList
 
 	resp, _ := yt.R().
 		EnableDump().
 		SetQueryParam("fields", "id,name,shortName").
-		SetSuccessResult(&projects).
+		SetSuccessResult(&projects.Projects).
 		Get("/admin/projects")
 
 	// Check if the request failed;
@@ -54,7 +54,24 @@ func (yt *youtrack) GetProjects() ([]d.Project, error) {
 		return nil, fmt.Errorf("some problem with YT request. error message: %v", resp.Err)
 	}
 
-	return projects, nil
+	return &projects, nil
+}
+
+// GetProjects
+// provides an array of existing projects;
+func (yt *youtrack) GetProjectIDByName(searchName string) (string, error) {
+
+	projects, err := yt.getProjects()
+	if err != nil {
+		return "", err
+	}
+
+	projectID, err := projects.FindProjectByName(searchName)
+	if err != nil {
+		return "", err
+	}
+
+	return projectID, nil
 }
 
 // CreateIssue
