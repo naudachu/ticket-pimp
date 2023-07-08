@@ -9,13 +9,13 @@ import (
 func (wc *WorkflowController) Workflow(name string) (string, error) {
 	yt := wc.iYouTrack
 
-	projects, err := yt.GetProjects()
-
+	projectID, err := yt.GetProjectIDByName("APP")
 	if err != nil {
 		return "", err
 	}
 
-	issue, err := yt.CreateIssue(projects[1].ID, name, "")
+	// Create an issue at the available project with the provided name
+	issue, err := yt.CreateIssue(projectID, name, "")
 
 	if err != nil {
 		return "", err

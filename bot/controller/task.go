@@ -25,14 +25,14 @@ func (wc *WorkflowController) CreateTask(t *Task) (*Task, error) {
 
 	yt := wc.iYouTrack
 
-	projects, err := yt.GetProjects()
+	projectID, err := yt.GetProjectIDByName("ETMD")
 	if err != nil {
 		return nil, err
 	}
 
 	t.Description += fmt.Sprintf("\n\n Created by: [%s](%s)", t.Creator, t.CreatorLink)
 
-	issue, err := yt.CreateIssue(projects[1].ID, t.Creator+" | "+t.Summary, t.Description)
+	issue, err := yt.CreateIssue(projectID, t.Creator+" | "+t.Summary, t.Description)
 	if err != nil {
 		return nil, err
 	}
