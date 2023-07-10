@@ -1,4 +1,4 @@
-package controller
+package controllers
 
 import (
 	"encoding/csv"
@@ -7,10 +7,8 @@ import (
 
 	"github.com/imroc/req/v3"
 
-	d "ticket-pimp/bot/domain"
+	d "ticket-pimp/internal/domain"
 )
-
-//198.244.211.60:10908
 
 func (wc *WorkflowController) ThrowConversions(f io.ReadCloser, appID string, token string) *d.ConversionLog {
 	c := req.C().

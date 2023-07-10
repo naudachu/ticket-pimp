@@ -6,16 +6,21 @@ import (
 )
 
 type TaskEntity struct {
-	ID          uuid.UUID `gorm:"column:uuid;primaryKey;unique;not null"`
+	ID          uuid.UUID `gorm:"primaryKey;"`
 	Title       string    `gorm:"column:title;not null"`
 	Description string    `gorm:"column:description;not null"`
 
-	Creator     string `gorm:"column:creator;not null"`
-	Responsible string `gorm:"column:responsible;not null"`
+	Creator     string `gorm:"not null"`
+	Responsible string `gorm:"not null"`
 
 	Status Status `gorm:"column:status;not null;embeded"`
 
 	gorm.Model
+}
+
+func (t *TaskEntity) BeforeCreate(tx *gorm.DB) (err error) {
+	t.ID = uuid.New()
+	return
 }
 
 type Status int

@@ -1,4 +1,4 @@
-package ext
+package extapi
 
 import (
 	"log"
@@ -6,7 +6,7 @@ import (
 )
 
 type Coda struct {
-	*Client
+	*CommonClient
 }
 
 type ICoda interface {
@@ -21,7 +21,7 @@ func NewCodaClient() *Coda {
 		SetBaseURL("https://coda.io/apis/v1")
 
 	return &Coda{
-		Client: &Client{
+		CommonClient: &CommonClient{
 			client,
 		},
 	}

@@ -1,11 +1,11 @@
-package ext
+package extapi
 
 import (
 	"fmt"
 	"log"
 	"time"
 
-	d "ticket-pimp/bot/domain"
+	d "ticket-pimp/internal/domain"
 
 	"github.com/imroc/req/v3"
 )

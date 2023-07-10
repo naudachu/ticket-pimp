@@ -2,7 +2,7 @@ package handler
 
 import (
 	"testing"
-	"ticket-pimp/bot/domain"
+	"ticket-pimp/internal/domain"
 )
 
 type test struct {

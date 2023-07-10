@@ -1,23 +1,18 @@
-package ext
+package extapi
 
 import (
 	"log"
 	"os"
-	"ticket-pimp/bot/domain"
-	"ticket-pimp/bot/helpers"
+	"ticket-pimp/helpers"
+	"ticket-pimp/internal/domain"
 	"time"
 )
 
-type Git struct {
-	*Client
+type GitBucketClient struct {
+	*CommonClient
 }
 
-type IGit interface {
-	NewRepo(string) (*domain.Git, error)
-	AppsAsCollaboratorTo(*domain.Git) (*domain.Git, error)
-}
-
-func NewGit(base, token string) *Git {
+func NewGitClient(base, token string) *GitBucketClient {
 	headers := map[string]string{
 		"Accept":               "application/vnd.github+json",
 		"Authorization":        "Token " + token,
@@ -30,9 +25,14 @@ func NewGit(base, token string) *Git {
 		SetCommonHeaders(headers).
 		SetBaseURL(base)
 
-	return &Git{
-		Client: &Client{client},
+	return &GitBucketClient{
+		CommonClient: &CommonClient{client},
 	}
+}
+
+type IGit interface {
+	NewRepo(string) (*domain.Git, error)
+	AppsAsCollaboratorTo(*domain.Git) (*domain.Git, error)
 }
 
 type request struct {
@@ -44,7 +44,7 @@ type permissionRequest struct {
 	Perm string `json:"permission"`
 }
 
-func (gb *Git) NewRepo(name string) (*domain.Git, error) {
+func (gb *GitBucketClient) NewRepo(name string) (*domain.Git, error) {
 	name = helpers.GitNaming(name)
 
 	payload := request{
@@ -68,7 +68,7 @@ func (gb *Git) NewRepo(name string) (*domain.Git, error) {
 	return &git, nil
 }
 
-func (gb *Git) AppsAsCollaboratorTo(git *domain.Git) (*domain.Git, error) {
+func (gb *GitBucketClient) AppsAsCollaboratorTo(git *domain.Git) (*domain.Git, error) {
 
 	payload := permissionRequest{
 		Perm: "admin",

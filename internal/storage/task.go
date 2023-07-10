@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"ticket-pimp/bot/domain"
+	"ticket-pimp/internal/domain"
 )
 
 type TaskRepository interface {

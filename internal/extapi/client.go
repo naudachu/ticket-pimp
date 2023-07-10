@@ -1,4 +1,4 @@
-package ext
+package extapi
 
 import (
 	"fmt"
@@ -6,12 +6,12 @@ import (
 	"github.com/imroc/req/v3"
 )
 
-type Client struct {
+type CommonClient struct {
 	*req.Client
 }
 
-func NewClient() *Client {
-	return &Client{req.C().
+func NewClient() *CommonClient {
+	return &CommonClient{req.C().
 		OnAfterResponse(func(client *req.Client, resp *req.Response) error {
 			if resp.Err != nil {
 				if dump := resp.Dump(); dump != "" {

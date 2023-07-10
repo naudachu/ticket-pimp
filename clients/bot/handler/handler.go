@@ -6,110 +6,26 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"ticket-pimp/bot/controller"
-	d "ticket-pimp/bot/domain"
-	"ticket-pimp/bot/storage"
+	"ticket-pimp/internal/controllers"
+	"ticket-pimp/internal/controllers/controller"
+	"ticket-pimp/internal/storage"
 
 	"github.com/mr-linch/go-tg"
 	"github.com/mr-linch/go-tg/tgb"
 )
 
 type Handler struct {
-	workflow controller.IWorkflowController
+	workflow controllers.IWorkflowController
+	cloud    controller.CloudCreator
+	git      controller.RepoCreator
 }
 
-func NewHandler(gitBaseURL, gitToken, cloudBaseURL, cloudAuthUser, cloudAuthPass, ytBaseURL, ytToken string, r storage.Storage) *Handler {
+func NewHandler(git controller.RepoCreator, cloud controller.CloudCreator, workflow controllers.IWorkflowController, r storage.Storage) *Handler {
 	return &Handler{
-		workflow: controller.NewWorkflowController(
-			gitBaseURL,
-			gitToken,
-			cloudBaseURL,
-			cloudAuthUser,
-			cloudAuthPass,
-			ytBaseURL,
-			ytToken,
-			r),
+		workflow: workflow,
+		cloud:    cloud,
+		git:      git,
 	}
-}
-
-func (h *Handler) PingHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
-
-	return mu.Answer("pong").DoVoid(ctx)
-}
-
-type git struct {
-	name string
-	url  string
-
-	git string
-	ssh string
-}
-
-func newGit(d *d.Git) *git {
-	return &git{
-		name: d.Name,
-		url:  d.HtmlUrl,
-		git:  d.CloneUrl,
-		ssh:  fmt.Sprintf("ssh://%s/%s.git", d.SshUrl, d.FullName),
-	}
-}
-
-// FYI: Telegram doesn't renders this hyperlink, if the url is localhost 🤷‍♂️
-func (g *git) PrepareAnswer() string {
-	return tg.HTML.Text(
-		tg.HTML.Line(
-			"Repo ",
-			tg.HTML.Link(g.name, g.url),
-			"has been created!",
-		),
-	)
-}
-
-func (h *Handler) NewRepoHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
-
-	str := strings.Replace(mu.Text, "/repo", "", 1)
-
-	if str == "" {
-		return errors.New("empty command provided")
-	}
-
-	var g *d.Git
-	g, err := h.workflow.CreateRepo(str)
-
-	if err != nil {
-		return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
-	}
-
-	resp := newGit(g).PrepareAnswer()
-
-	return mu.Answer(resp).ParseMode(tg.HTML).DoVoid(ctx)
-}
-
-func (h *Handler) NewFolderHandler(ctx context.Context, mu *tgb.MessageUpdate) error {
-
-	str := strings.Replace(mu.Text, "/folder", "", 1)
-
-	if str == "" {
-		return errors.New("empty command provided")
-	}
-
-	cloud, err := h.workflow.CreateFolder(str)
-
-	if err != nil {
-		return mu.Answer(errorAnswer(err.Error())).ParseMode(tg.HTML).DoVoid(ctx)
-	}
-
-	answer := tg.HTML.Text(
-		tg.HTML.Line(
-			"✨ Shiny folder",
-			tg.HTML.Link(cloud.Title, cloud.PrivateURL),
-			"has been created!",
-		),
-	)
-
-	return mu.Answer(answer).
-		ParseMode(tg.HTML).
-		DoVoid(ctx)
 }
 
 func errorAnswer(errorMsg string) string {
@@ -225,5 +141,4 @@ func normalizeToken(msg string) (string, string) {
 	}
 
 	return args[0], args[0] + "|" + args[1]
-
 }

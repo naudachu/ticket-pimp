@@ -1,10 +1,9 @@
-package controller
+package controllers
 
 import (
 	"fmt"
-	"ticket-pimp/bot/domain"
+	"ticket-pimp/internal/domain"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -39,7 +38,6 @@ func (wc *WorkflowController) CreateTask(t *YTTask) (*YTTask, error) {
 	t.Description += fmt.Sprintf("\n\n Created by: [%s](%s)", t.Creator, t.CreatorLink)
 
 	task := domain.TaskEntity{
-		ID:          uuid.New(),
 		Title:       t.Summary,
 		Description: t.Description,
 		Creator:     t.Creator,

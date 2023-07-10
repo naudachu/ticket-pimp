@@ -1,16 +1,16 @@
-package ext
+package extapi
 
 import (
 	"fmt"
 	"os"
 	"strconv"
-	d "ticket-pimp/bot/domain"
-	"ticket-pimp/bot/helpers"
+	"ticket-pimp/helpers"
+	d "ticket-pimp/internal/domain"
 	"time"
 )
 
-type Cloud struct {
-	*Client
+type CloudClient struct {
+	*CommonClient
 }
 
 type ICloud interface {
@@ -18,21 +18,21 @@ type ICloud interface {
 	ShareToExternals(cloud *d.Folder) (*d.Folder, error)
 }
 
-func NewCloud(base, user, pass string) *Cloud {
+func NewCloudClient(base, user, pass string) *CloudClient {
 
 	client := NewClient().
 		SetTimeout(5*time.Second).
 		SetCommonBasicAuth(user, pass).
 		SetBaseURL(base)
 
-	return &Cloud{
-		Client: &Client{
+	return &CloudClient{
+		CommonClient: &CommonClient{
 			client,
 		},
 	}
 }
 
-func (c *Cloud) CreateFolder(name string) (*d.Folder, error) {
+func (c *CloudClient) CreateFolder(name string) (*d.Folder, error) {
 	rootDir := os.Getenv("ROOTDIR")
 	user := os.Getenv("CLOUD_USER")
 
@@ -66,7 +66,7 @@ func (c *Cloud) CreateFolder(name string) (*d.Folder, error) {
 	return &cloud, nil
 }
 
-func (c *Cloud) setPrivateURL(requestPath string, cloud *d.Folder) error {
+func (c *CloudClient) setPrivateURL(requestPath string, cloud *d.Folder) error {
 
 	payload := []byte(`<?xml version="1.0"?><a:propfind xmlns:a="DAV:" xmlns:oc="http://owncloud.org/ns"><a:prop><oc:fileid/></a:prop></a:propfind>`)
 
@@ -98,6 +98,6 @@ func (c *Cloud) setPrivateURL(requestPath string, cloud *d.Folder) error {
 	return nil
 }
 
-func (c *Cloud) ShareToExternals(cloud *d.Folder) (*d.Folder, error) {
+func (c *CloudClient) ShareToExternals(cloud *d.Folder) (*d.Folder, error) {
 	return nil, nil
 }

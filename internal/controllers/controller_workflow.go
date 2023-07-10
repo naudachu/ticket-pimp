@@ -1,15 +1,15 @@
-package controller
+package controllers
 
 import (
 	"fmt"
 	"sync"
-	d "ticket-pimp/bot/domain"
+	d "ticket-pimp/internal/domain"
 )
 
 func (wc *WorkflowController) Workflow(name string) (string, error) {
 	yt := wc.iYouTrack
 
-	projectID, err := yt.GetProjectIDByName("APP")
+	projectID, err := yt.GetProjectIDByName("tst")
 	if err != nil {
 		return "", err
 	}
@@ -32,17 +32,18 @@ func (wc *WorkflowController) Workflow(name string) (string, error) {
 
 		go func(ref **d.Git) {
 			defer wg.Done()
-			*ref, _ = wc.CreateRepo(issue.Key)
+
+			*ref, _ = wc.git.CreateRepo(issue.Key)
 		}(&git)
 
 		go func(ref **d.Git) {
 			defer wg.Done()
-			*ref, _ = wc.CreateRepo(issue.Key + "-build")
+			*ref, _ = wc.git.CreateRepo(issue.Key + "-build")
 		}(&gitBuild)
 
 		go func(ref **d.Folder) {
 			defer wg.Done()
-			*ref, _ = wc.CreateFolder(issue.Key + " - " + issue.Summary)
+			*ref, _ = wc.cloud.CreateFolder(issue.Key + " - " + issue.Summary)
 		}(&cloud)
 
 		wg.Wait()
